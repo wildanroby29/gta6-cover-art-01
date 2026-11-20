@@ -3,20 +3,22 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Neon Vice — GTA-style Cover Studio</title>
+<title>Neon Chrome — GTA-style Cover Studio</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
 <header class="topbar">
   <div class="brand">
-    <span class="brand-mark">★</span>
+    <span class="brand-mark">✦</span>
     <div>
-      <h1>NEON VICE</h1>
+      <h1>NEON CHROME</h1>
       <p>GTA-style cover studio — any photo, one PNG</p>
     </div>
   </div>
   <div class="top-actions">
+    <span class="autosave"><span class="dot"></span> Auto-save on</span>
+    <span class="project">Project: <strong>Last Call</strong></span>
     <button id="undo" type="button" title="Undo (Ctrl+Z)">↩ Undo</button>
     <button id="redo" type="button" title="Redo (Ctrl+Y)">↪ Redo</button>
   </div>
@@ -32,9 +34,13 @@
       <label class="upload-btn">Upload your photos
         <input id="upload" type="file" accept="image/*" multiple>
       </label>
-      <div class="row">
-        <button id="sample-boulevard" type="button">Sample: Boulevard</button>
-        <button id="sample-pier" type="button">Sample: Pier</button>
+      <div id="samples" class="btn-grid samples">
+        <button type="button" data-sample="mechanic.jpg">Mechanic</button>
+        <button type="button" data-sample="courier.jpg">Courier</button>
+        <button type="button" data-sample="insider.jpg">Insider</button>
+        <button type="button" data-sample="boss.jpg">Boss</button>
+        <button type="button" data-sample="boulevard.jpg">Boulevard</button>
+        <button type="button" data-sample="pier.jpg">Pier</button>
       </div>
       <div id="tray" class="tray" aria-label="Loaded photos"></div>
     </div>
@@ -57,17 +63,39 @@
       <h2>3 · Grade</h2>
       <div id="grades" class="btn-grid grades">
         <button type="button" data-grade="vice-sunset" style="--g1:#ff9a3d;--g2:#ff2d78">Vice Sunset</button>
-        <button type="button" data-grade="neon-night" style="--g1:#00e5ff;--g2:#ff2ec4">Neon Night</button>
+        <button type="button" data-grade="neon-night" style="--g1:#a855f7;--g2:#ff2ec4">Neon Night</button>
         <button type="button" data-grade="golden-hour" style="--g1:#ffd76a;--g2:#ff7b2f">Golden Hour</button>
         <button type="button" data-grade="miami-teal" style="--g1:#00c2a8;--g2:#0057ff">Miami Teal</button>
         <button type="button" data-grade="noir-pop" style="--g1:#ffffff;--g2:#ff2d78">Noir Pop</button>
         <button type="button" data-grade="palm-dusk" style="--g1:#7b2ff7;--g2:#ff5e62">Palm Dusk</button>
       </div>
+      <div class="sliders">
+        <label>Brightness <span id="brightnessVal" class="val">1.00×</span><input id="brightness" type="range" min="0.7" max="1.3" step="0.01" value="1"></label>
+        <label>Contrast <span id="contrastVal" class="val">1.00×</span><input id="contrast" type="range" min="0.8" max="1.4" step="0.01" value="1"></label>
+        <label>Neon Glow <span id="glowVal" class="val">70%</span><input id="glow" type="range" min="0" max="1" step="0.01" value="0.7"></label>
+      </div>
     </div>
     <div class="group">
       <h2>4 · Caption</h2>
-      <label>Title <input id="title" type="text" maxlength="30" value="Neon Shore"></label>
-      <label>Subtitle <input id="subtitle" type="text" maxlength="40" value="a vice city story"></label>
+      <label>Title <input id="title" type="text" maxlength="30" value="Last Call"></label>
+      <div class="row">
+        <label>Subtitle <input id="subtitle" type="text" maxlength="40" value="Neon Avenue"></label>
+        <label class="color-label">Color <input id="subtitleColor" type="color" value="#ff5ce1"></label>
+      </div>
+      <label>Title style</label>
+      <div id="titleStyles" class="btn-grid title-styles">
+        <button type="button" data-title-style="chrome-3d">Chrome 3D</button>
+        <button type="button" data-title-style="gold-3d">Gold 3D</button>
+        <button type="button" data-title-style="flat">Flat</button>
+      </div>
+    </div>
+    <div class="group">
+      <h2>5 · Labels &amp; seal</h2>
+      <label>Panel label <input id="panelLabelInput" type="text" maxlength="18" placeholder="THE MECHANIC"></label>
+      <div class="row">
+        <label class="check"><input id="showLabels" type="checkbox" checked> Show Labels</label>
+        <label class="check"><input id="showSeal" type="checkbox" checked> Show Seal Badge</label>
+      </div>
       <div class="row">
         <label>Heat <select id="heat">
           <option value="0">Off</option>
@@ -81,14 +109,14 @@
       </div>
     </div>
     <div class="group">
-      <h2>5 · Size &amp; export</h2>
+      <h2>6 · Size &amp; export</h2>
       <div id="sizes" class="btn-grid sizes">
         <button type="button" data-size="1080x1080">1080 × 1080</button>
         <button type="button" data-size="1080x1350">1080 × 1350</button>
         <button type="button" data-size="1920x1080">1920 × 1080</button>
       </div>
       <div class="row">
-        <button id="export" type="button" class="primary">Export PNG</button>
+        <button id="export" type="button" class="primary">⬇ Export PNG</button>
         <button id="export-all" type="button">Export all 3 sizes</button>
       </div>
       <p id="status" role="status"></p>

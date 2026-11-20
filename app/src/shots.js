@@ -1,24 +1,40 @@
 // Fixed scenes for screenshots: ?shot=cover shows one exported cover alone at
 // its export size; ?shot=editor shows the editor with sample photos loaded.
 // Query params: layout, grade, size (1080x1080|1080x1350|1920x1080), title,
-// subtitle, heat (0-5), strip (0|1), photo (boulevard|pier, the hero photo).
+// subtitle, subtitleColor, titleStyle (chrome-3d|gold-3d|flat), heat (0-5),
+// strip (0|1), labels (0|1), seal (0|1), brightness, contrast, glow,
+// photos (comma list of sample names, cycled across panels).
 // window.__shotReady is set once painted, after the fonts are in.
 export async function runShot(shot, query, api) {
   const { state, loadSamples, redraw, pushHistory, syncControls } = api;
   await loadSamples();
   const get = (k, d) => query.get(k) ?? d;
-  state.layout = get('layout', 'hero-three');
-  state.grade = get('grade', 'vice-sunset');
+  state.layout = get('layout', 'four-panel');
+  state.grade = get('grade', 'neon-night');
   state.size = get('size', '1920x1080');
-  state.title = get('title', 'Neon Shore');
-  state.subtitle = get('subtitle', 'a vice city story');
+  state.title = get('title', 'Last Call');
+  state.subtitle = get('subtitle', 'Neon Avenue');
+  state.subtitleColor = get('subtitleColor', '#ff5ce1');
+  state.titleStyle = get('titleStyle', 'chrome-3d');
   state.heat = Number(get('heat', '4'));
   state.strip = get('strip', '1') !== '0';
-  const hero = get('photo', 'boulevard');
-  const other = hero === 'boulevard' ? 'pier' : 'boulevard';
-  const heroId = api.photoIdByName(hero);
-  const otherId = api.photoIdByName(other);
-  state.slots.forEach((s, i) => { s.photoId = i % 2 === 0 ? heroId : otherId; });
+  state.showLabels = get('labels', '1') !== '0';
+  state.showSeal = get('seal', '1') !== '0';
+  state.brightness = Number(get('brightness', '1'));
+  state.contrast = Number(get('contrast', '1'));
+  state.glow = Number(get('glow', '0.7'));
+  const photoNames = (get('photos', 'mechanic,courier,insider,boss') || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const photoIds = photoNames.map((name) => api.photoIdByName(name)).filter(Boolean);
+  const fallback = api.photoIdByName('mechanic');
+  const labels = {
+    mechanic: 'THE MECHANIC', courier: 'THE COURIER', insider: 'THE INSIDER',
+    boss: 'THE BOSS', boulevard: 'THE CREW', pier: 'THE ANGLER',
+  };
+  state.slots.forEach((s, i) => {
+    const name = photoNames[i % photoNames.length] ?? 'mechanic';
+    s.photoId = photoIds[i % photoIds.length] ?? fallback;
+    s.label = labels[name] ?? '';
+  });
   syncControls();
   pushHistory();
   if (shot === 'cover') {
