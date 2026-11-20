@@ -1,54 +1,61 @@
 // Fixed scenes for screenshots: ?shot=cover shows one exported cover alone at
-// its export size; ?shot=editor shows the editor with sample photos loaded.
-// The default cover matches the reference mockup: diverse scenes (sunset
-// beach, neon palm street, pink sports car, a person) with the giant 3D
-// title in its pink-neon-framed block at the bottom.
+// its export size; ?shot=editor shows the editor with the demo cast loaded.
+// The cover is the approved Vice City Cast look: seven cast portraits in a
+// hero mosaic, solid-gold Anton title across the middle, Pacifico script
+// subtitle, tagline ribbon, five stars and a quote, gold seal, billing that
+// names only the fictional Vice City Pictures studio.
 // Query params: layout, grade, size (1080x1080|1080x1350|1920x1080), title,
-// subtitle, subtitleColor, titleStyle (chrome-3d|gold-3d|flat), heat (0-5),
-// strip (0|1), labels (0|1), seal (0|1), brightness, contrast, glow,
-// photos (comma list of sample names, cycled across panels).
-// window.__shotReady is set once painted, after the fonts are in.
+// subtitle, ribbon, quote, quoteSource, billing, seal, sealRing, release,
+// edition, labels (0|1), seal (0|1), heat (0-5), photos (comma list of cast
+// ids, in slot order). window.__shotReady is set once painted, after the
+// fonts are in.
+import { CAST, BILLING_DEFAULT } from './cover.js';
+
 export async function runShot(shot, query, api) {
   const { state, loadSamples, redraw, pushHistory, syncControls } = api;
   await loadSamples();
   const get = (k, d) => query.get(k) ?? d;
-  state.layout = get('layout', 'four-panel');
-  state.grade = get('grade', 'neon-night');
+  state.layout = get('layout', 'hero-mosaic');
+  state.grade = get('grade', 'sunset-gold');
   state.size = get('size', '1920x1080');
-  state.title = get('title', 'Last Call');
-  state.subtitle = get('subtitle', 'Neon Avenue');
-  state.subtitleColor = get('subtitleColor', '#ff5ce1');
-  state.titleStyle = get('titleStyle', 'chrome-3d');
-  state.heat = Number(get('heat', '4'));
-  state.strip = get('strip', '1') !== '0';
+  state.title = get('title', 'Vice City');
+  state.subtitle = get('subtitle', 'Neon Nights');
+  state.ribbon = get('ribbon', 'NEON • SUNSET • 1987 — YOUR STORY, YOUR CITY');
+  state.quote = get('quote', 'THE HOTTEST CREW OF THE YEAR');
+  state.quoteSource = get('quoteSource', 'VICE CITY GAZETTE');
+  state.billing = get('billing', BILLING_DEFAULT);
+  state.seal = get('seal', 'BEST CREW');
+  state.sealRing = get('sealRing', 'VICE CITY FILM FESTIVAL');
+  state.release = get('release', 'COMING SOON');
+  state.edition = get('edition', 'VOL. 1');
   state.showLabels = get('labels', '1') !== '0';
   state.showSeal = get('seal', '1') !== '0';
-  state.brightness = Number(get('brightness', '1'));
-  state.contrast = Number(get('contrast', '1'));
-  state.glow = Number(get('glow', '0.7'));
-  const photoNames = (get('photos', 'beach,street,car,boulevard') || '').split(',').map((s) => s.trim()).filter(Boolean);
-  const photoIds = photoNames.map((name) => api.photoIdByName(name)).filter(Boolean);
-  const fallback = api.photoIdByName('beach');
-  const labels = {
-    beach: 'THE SHORE', street: 'THE STRIP', car: 'THE RIDE',
-    mechanic: 'THE MECHANIC', courier: 'THE COURIER', insider: 'THE INSIDER',
-    boss: 'THE BOSS', boulevard: 'THE CREW', pier: 'THE ANGLER',
-  };
+  state.heat = Number(get('heat', '5'));
+  state.selected = 0;
+  const photoNames = (get('photos', CAST.map((c) => c.id).join(',')) || '')
+    .split(',').map((s) => s.trim()).filter(Boolean);
+  const byId = new Map(CAST.map((c) => [c.id, c]));
   state.slots.forEach((s, i) => {
-    const name = photoNames[i % photoNames.length] ?? 'mechanic';
-    s.photoId = photoIds[i % photoIds.length] ?? fallback;
-    s.label = labels[name] ?? '';
+    const cast = byId.get(photoNames[i % photoNames.length]) || CAST[i % CAST.length];
+    s.photoId = cast.id;
+    s.label = cast.role;
+    s.zoom = 1; s.ox = 0; s.oy = 0; s.flip = false;
   });
   syncControls();
   pushHistory();
   if (shot === 'cover') {
     document.body.classList.add('shot-cover');
-    fitCoverCanvas();
     window.addEventListener('resize', fitCoverCanvas);
+  } else {
+    document.body.classList.add('shot-editor');
   }
   redraw();
+  // Fit AFTER the canvas is resized to its export size; fitting before
+  // redraw used the previous canvas size and squeezed portrait/square covers.
+  if (shot === 'cover') fitCoverCanvas();
   await document.fonts.ready;
   redraw();
+  if (shot === 'cover') fitCoverCanvas();
   requestAnimationFrame(() => requestAnimationFrame(() => { window.__shotReady = true; }));
 }
 

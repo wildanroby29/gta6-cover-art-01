@@ -3,119 +3,135 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Neon Chrome — GTA-style Cover Studio</title>
+<title>Vice City Cover Studio — turn your crew into cover art</title>
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
 <header class="topbar">
   <div class="brand">
-    <span class="brand-mark">✦</span>
-    <div>
-      <h1>NEON CHROME</h1>
-      <p>GTA-style cover studio — any photo, one PNG</p>
-    </div>
+    <span class="brand-mark" aria-hidden="true">◆</span>
+    <h1>Vice City Cover Studio</h1>
   </div>
+  <nav class="steps" aria-label="Steps">
+    <span class="step on"><b>1</b> ADD PHOTOS</span>
+    <span class="arr" aria-hidden="true">→</span>
+    <span class="step"><b>2</b> CAPTION</span>
+    <span class="arr" aria-hidden="true">→</span>
+    <span class="step"><b>3</b> EXPORT PNG</span>
+  </nav>
   <div class="top-actions">
-    <span class="autosave"><span class="dot"></span> Auto-save on</span>
-    <span class="project">Project: <strong>Vice City</strong></span>
-    <button id="undo" type="button" title="Undo (Ctrl+Z)">↩ Undo</button>
-    <button id="redo" type="button" title="Redo (Ctrl+Y)">↪ Redo</button>
+    <button id="undo" type="button" title="Undo (Ctrl+Z)">↩</button>
+    <button id="redo" type="button" title="Redo (Ctrl+Y)">↪</button>
+    <button id="settings" type="button" title="Settings">⚙</button>
+    <span class="avatar" title="Your crew" aria-hidden="true"></span>
   </div>
 </header>
 <main class="app">
-  <section class="preview">
-    <canvas id="cover" width="1080" height="1080" aria-label="Live cover preview"></canvas>
-    <p class="hint">Click a panel to select it. Drag to move the photo, scroll to zoom. Click a photo below to fill the selected panel.</p>
-  </section>
-  <section class="controls">
-    <div class="group">
-      <h2>1 · Photos</h2>
+  <section class="stage">
+    <div class="size-tabs" id="sizeTabs">
+      <span class="size-label">OUTPUT SIZE:</span>
+      <button type="button" data-size="1080x1080">1:1 1080×1080</button>
+      <button type="button" data-size="1080x1350">4:5 1080×1350</button>
+      <button type="button" data-size="1920x1080" class="on">16:9 1920×1080</button>
+    </div>
+    <div class="canvas-wrap">
+      <canvas id="cover" width="1920" height="1080" aria-label="Live cover preview"></canvas>
+    </div>
+    <div class="samples">
+      <span class="samples-label">★ Try samples — 7-person demo cast</span>
+      <div id="tray" class="tray" aria-label="Demo cast photos"></div>
       <label class="upload-btn">Upload your photos
         <input id="upload" type="file" accept="image/*" multiple>
       </label>
-      <div id="samples" class="btn-grid samples">
-        <button type="button" data-sample="beach.jpg">Beach</button>
-        <button type="button" data-sample="street.jpg">Street</button>
-        <button type="button" data-sample="car.jpg">Car</button>
-        <button type="button" data-sample="mechanic.jpg">Mechanic</button>
-        <button type="button" data-sample="courier.jpg">Courier</button>
-        <button type="button" data-sample="insider.jpg">Insider</button>
-        <button type="button" data-sample="boss.jpg">Boss</button>
-        <button type="button" data-sample="boulevard.jpg">Boulevard</button>
-        <button type="button" data-sample="pier.jpg">Pier</button>
-      </div>
-      <div id="tray" class="tray" aria-label="Loaded photos"></div>
     </div>
-    <div class="group">
-      <h2>2 · Layout <span id="panelLabel" class="panel-label">Panel 1 of 4</span></h2>
-      <div id="layouts" class="btn-grid">
-        <button type="button" data-layout="four-panel">Four-Panel Grid</button>
-        <button type="button" data-layout="hero-three">Hero and Three</button>
-        <button type="button" data-layout="full-bleed">Full-Bleed</button>
-        <button type="button" data-layout="tilted">Tilted Snapshots</button>
-        <button type="button" data-layout="nine-panel">Nine-Panel Grid</button>
-        <button type="button" data-layout="triptych">Triptych</button>
-      </div>
-      <div class="crop-row">
-        <label>Zoom <input id="zoom" type="range" min="1" max="3" step="0.01" value="1"></label>
-        <button id="reset-crop" type="button">Reset crop</button>
-      </div>
-    </div>
-    <div class="group">
-      <h2>3 · Grade</h2>
-      <div id="grades" class="btn-grid grades">
-        <button type="button" data-grade="vice-sunset" style="--g1:#ff9a3d;--g2:#ff2d78">Vice Sunset</button>
-        <button type="button" data-grade="neon-night" style="--g1:#a855f7;--g2:#ff2ec4">Neon Night</button>
-        <button type="button" data-grade="golden-hour" style="--g1:#ffd76a;--g2:#ff7b2f">Golden Hour</button>
-        <button type="button" data-grade="miami-teal" style="--g1:#00c2a8;--g2:#0057ff">Miami Teal</button>
-        <button type="button" data-grade="noir-pop" style="--g1:#ffffff;--g2:#ff2d78">Noir Pop</button>
-        <button type="button" data-grade="palm-dusk" style="--g1:#7b2ff7;--g2:#ff5e62">Palm Dusk</button>
-      </div>
-    </div>
-    <div class="group">
-      <h2>4 · Caption</h2>
-      <label>Title <input id="title" type="text" maxlength="30" value="Vice City"></label>
-    </div>
-    <div class="group">
-      <h2>5 · Labels &amp; seal</h2>
-      <label>Panel label <input id="panelLabelInput" type="text" maxlength="18" placeholder="THE MECHANIC"></label>
-      <div class="row">
-        <label class="check"><input id="showLabels" type="checkbox" checked> Show Labels</label>
-        <label class="check"><input id="showSeal" type="checkbox" checked> Show Seal Badge</label>
-      </div>
-      <div class="row">
-        <label>Heat <select id="heat">
-          <option value="0">Off</option>
-          <option value="1">★</option>
-          <option value="2">★★</option>
-          <option value="3">★★★</option>
-          <option value="4" selected>★★★★</option>
-          <option value="5">★★★★★</option>
-        </select></label>
-        <label class="check"><input id="strip" type="checkbox" checked> Story strip</label>
-      </div>
-    </div>
-    <div class="group">
-      <h2>6 · Size &amp; export</h2>
-      <div id="sizes" class="btn-grid sizes">
-        <button type="button" data-size="1080x1080">1080 × 1080</button>
-        <button type="button" data-size="1080x1350">1080 × 1350</button>
-        <button type="button" data-size="1920x1080">1920 × 1080</button>
-      </div>
-      <div class="row">
-        <button id="export" type="button" class="primary">⬇ Export PNG</button>
-        <button id="export-all" type="button">Export all 3 sizes</button>
-      </div>
-      <p class="export-note">Exports as high-quality PNG</p>
-      <p id="status" role="status"></p>
-    </div>
+    <p class="cast-line">THE BOSS • THE DRIVER • THE MECHANIC • THE HUSTLER • THE FIXER • THE SMUGGLER • THE LOOKOUT</p>
+    <p class="tag-line">MIAMI • 2025 • SEVEN LIVES. ONE CITY.</p>
   </section>
+  <aside class="editor" aria-label="Editor">
+    <h2><span aria-hidden="true">⚙</span> EDITOR</h2>
+    <section class="ed-group">
+      <h3>LAYOUT</h3>
+      <div id="layouts" class="tiles">
+        <button type="button" data-layout="hero-mosaic" class="on"><span class="tile-icon" aria-hidden="true">▣</span>HERO MOSAIC</button>
+        <button type="button" data-layout="diagonal-strips"><span class="tile-icon" aria-hidden="true">▧</span>DIAGONAL STRIPS</button>
+        <button type="button" data-layout="six-grid"><span class="tile-icon" aria-hidden="true">▦</span>SIX GRID</button>
+      </div>
+    </section>
+    <section class="ed-group">
+      <h3>COLOUR GRADE</h3>
+      <div id="grades" class="swatches">
+        <button type="button" data-grade="sunset-gold" class="on" style="--sw:linear-gradient(135deg,#ffd76a,#ff7b2f)"><span class="sw-dot"></span>SUNSET GOLD</button>
+        <button type="button" data-grade="neon-night" style="--sw:linear-gradient(135deg,#ff2ec4,#7b2ff7)"><span class="sw-dot"></span>NEON NIGHT</button>
+        <button type="button" data-grade="tropic-teal" style="--sw:linear-gradient(135deg,#00c2a8,#0057ff)"><span class="sw-dot"></span>TROPIC TEAL</button>
+        <button type="button" data-grade="ultraviolet" style="--sw:linear-gradient(135deg,#c084fc,#4c1d95)"><span class="sw-dot"></span>ULTRAVIOLET</button>
+        <button type="button" data-grade="retro-print" style="--sw:linear-gradient(135deg,#e8d5a8,#a87c4a)"><span class="sw-dot"></span>RETRO PRINT</button>
+      </div>
+    </section>
+    <section class="ed-group">
+      <h3>CAPTION</h3>
+      <label>Title <span class="font-note">Anton</span>
+        <input id="title" type="text" maxlength="30" value="Vice City">
+      </label>
+      <label>Script subtitle <span class="font-note">Pacifico</span>
+        <input id="subtitle" type="text" maxlength="30" value="Neon Nights">
+      </label>
+      <details class="more-fields">
+        <summary>More caption fields</summary>
+        <label>Tagline ribbon
+          <input id="ribbon" type="text" maxlength="60" value="NEON • SUNSET • 1987 — YOUR STORY, YOUR CITY">
+        </label>
+        <label>Review quote
+          <input id="quote" type="text" maxlength="60" value="THE HOTTEST CREW OF THE YEAR">
+        </label>
+        <label>Quote source
+          <input id="quoteSource" type="text" maxlength="40" value="VICE CITY GAZETTE">
+        </label>
+        <label>Billing
+          <input id="billing" type="text" maxlength="220" value="A VICE CITY PICTURES PRODUCTION — STARRING THE BOSS, THE DRIVER, THE MECHANIC, THE HUSTLER, THE FIXER, THE SMUGGLER, THE LOOKOUT — MIAMI, 1987">
+        </label>
+        <label>Seal
+          <input id="seal" type="text" maxlength="20" value="BEST CREW">
+        </label>
+        <label>Seal ring
+          <input id="sealRing" type="text" maxlength="60" value="VICE CITY FILM FESTIVAL">
+        </label>
+        <label>Release line
+          <input id="release" type="text" maxlength="20" value="COMING SOON">
+        </label>
+        <label>Edition tag
+          <input id="edition" type="text" maxlength="12" value="VOL. 1">
+        </label>
+        <label class="check"><input id="showLabels" type="checkbox" checked> Name tags on panels</label>
+        <label class="check"><input id="showSeal" type="checkbox" checked> Gold seal</label>
+      </details>
+    </section>
+    <section class="ed-group">
+      <h3 id="panelTitle">PANEL 1 — THE BOSS</h3>
+      <div class="panel-ctl">
+        <button id="photoPrev" type="button">◀ Photo</button>
+        <button id="photoNext" type="button">Photo ▶</button>
+        <button id="flip" type="button">⇄ Flip</button>
+        <button id="resetCrop" type="button">Reset</button>
+        <button id="autofill" type="button">✦ Auto-fill</button>
+      </div>
+      <label class="zoom-label">Zoom <input id="zoom" type="range" min="1" max="3" step="0.01" value="1"></label>
+      <p class="hint">Click a panel to select it. Drag to move the photo, scroll to zoom. Click a cast photo below to fill the selected panel. Drag a panel number to swap two panels.</p>
+    </section>
+    <section class="ed-group">
+      <h3>SIZE</h3>
+      <div id="sizes" class="btn-row">
+        <button type="button" data-size="1080x1080">1080×1080</button>
+        <button type="button" data-size="1080x1350">1080×1350</button>
+        <button type="button" data-size="1920x1080" class="on">1920×1080</button>
+      </div>
+    </section>
+    <button id="export" type="button" class="export">⬇ Export PNG</button>
+    <button id="export-all" type="button" class="export-all">Export all 3 PNGs</button>
+    <p class="badge">🔒 Photos never leave this device</p>
+    <p id="status" role="status"></p>
+  </aside>
 </main>
-<footer class="foot">
-  Runs offline — your photos never leave this machine. Lettering: Anton &amp; Pacifico (SIL Open Font License).
-  No Rockstar Games logo, artwork or fonts.
-</footer>
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>
