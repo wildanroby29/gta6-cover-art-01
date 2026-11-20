@@ -3,21 +3,102 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cover Snap</title>
+<title>Neon Vice — GTA-style Cover Studio</title>
+<link rel="icon" href="data:,">
 <link rel="stylesheet" href="./style.css">
 </head>
 <body>
+<header class="topbar">
+  <div class="brand">
+    <span class="brand-mark">★</span>
+    <div>
+      <h1>NEON VICE</h1>
+      <p>GTA-style cover studio — any photo, one PNG</p>
+    </div>
+  </div>
+  <div class="top-actions">
+    <button id="undo" type="button" title="Undo (Ctrl+Z)">↩ Undo</button>
+    <button id="redo" type="button" title="Redo (Ctrl+Y)">↪ Redo</button>
+  </div>
+</header>
 <main class="app">
-  <section class="controls">
-    <h1>Cover Snap</h1>
-    <p>A photo and a caption, made into a square cover.</p>
-    <label>Photo <input id="photo" type="file" accept="image/*"></label>
-    <label>Caption <input id="caption" type="text" maxlength="40" value="Sunset Heist"></label>
-    <button id="export" type="button">Export PNG 1080 x 1080</button>
-    <p id="status" role="status"></p>
+  <section class="preview">
+    <canvas id="cover" width="1080" height="1080" aria-label="Live cover preview"></canvas>
+    <p class="hint">Click a panel to select it. Drag to move the photo, scroll to zoom. Click a photo below to fill the selected panel.</p>
   </section>
-  <canvas id="cover" width="1080" height="1080" aria-label="The cover"></canvas>
+  <section class="controls">
+    <div class="group">
+      <h2>1 · Photos</h2>
+      <label class="upload-btn">Upload your photos
+        <input id="upload" type="file" accept="image/*" multiple>
+      </label>
+      <div class="row">
+        <button id="sample-boulevard" type="button">Sample: Boulevard</button>
+        <button id="sample-pier" type="button">Sample: Pier</button>
+      </div>
+      <div id="tray" class="tray" aria-label="Loaded photos"></div>
+    </div>
+    <div class="group">
+      <h2>2 · Layout <span id="panelLabel" class="panel-label">Panel 1 of 4</span></h2>
+      <div id="layouts" class="btn-grid">
+        <button type="button" data-layout="four-panel">Four-Panel Grid</button>
+        <button type="button" data-layout="hero-three">Hero and Three</button>
+        <button type="button" data-layout="full-bleed">Full-Bleed</button>
+        <button type="button" data-layout="tilted">Tilted Snapshots</button>
+        <button type="button" data-layout="nine-panel">Nine-Panel Grid</button>
+        <button type="button" data-layout="triptych">Triptych</button>
+      </div>
+      <div class="crop-row">
+        <label>Zoom <input id="zoom" type="range" min="1" max="3" step="0.01" value="1"></label>
+        <button id="reset-crop" type="button">Reset crop</button>
+      </div>
+    </div>
+    <div class="group">
+      <h2>3 · Grade</h2>
+      <div id="grades" class="btn-grid grades">
+        <button type="button" data-grade="vice-sunset" style="--g1:#ff9a3d;--g2:#ff2d78">Vice Sunset</button>
+        <button type="button" data-grade="neon-night" style="--g1:#00e5ff;--g2:#ff2ec4">Neon Night</button>
+        <button type="button" data-grade="golden-hour" style="--g1:#ffd76a;--g2:#ff7b2f">Golden Hour</button>
+        <button type="button" data-grade="miami-teal" style="--g1:#00c2a8;--g2:#0057ff">Miami Teal</button>
+        <button type="button" data-grade="noir-pop" style="--g1:#ffffff;--g2:#ff2d78">Noir Pop</button>
+        <button type="button" data-grade="palm-dusk" style="--g1:#7b2ff7;--g2:#ff5e62">Palm Dusk</button>
+      </div>
+    </div>
+    <div class="group">
+      <h2>4 · Caption</h2>
+      <label>Title <input id="title" type="text" maxlength="30" value="Neon Shore"></label>
+      <label>Subtitle <input id="subtitle" type="text" maxlength="40" value="a vice city story"></label>
+      <div class="row">
+        <label>Heat <select id="heat">
+          <option value="0">Off</option>
+          <option value="1">★</option>
+          <option value="2">★★</option>
+          <option value="3">★★★</option>
+          <option value="4" selected>★★★★</option>
+          <option value="5">★★★★★</option>
+        </select></label>
+        <label class="check"><input id="strip" type="checkbox" checked> Story strip</label>
+      </div>
+    </div>
+    <div class="group">
+      <h2>5 · Size &amp; export</h2>
+      <div id="sizes" class="btn-grid sizes">
+        <button type="button" data-size="1080x1080">1080 × 1080</button>
+        <button type="button" data-size="1080x1350">1080 × 1350</button>
+        <button type="button" data-size="1920x1080">1920 × 1080</button>
+      </div>
+      <div class="row">
+        <button id="export" type="button" class="primary">Export PNG</button>
+        <button id="export-all" type="button">Export all 3 sizes</button>
+      </div>
+      <p id="status" role="status"></p>
+    </div>
+  </section>
 </main>
+<footer class="foot">
+  Runs offline — your photos never leave this machine. Lettering: Anton &amp; Pacifico (SIL Open Font License).
+  No Rockstar Games logo, artwork or fonts.
+</footer>
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>
