@@ -1,3 +1,4 @@
 # Build output and dependencies (written in the recorded Neon Chrome rebuild).
+# Rewritten in the recorded mockup-match fix (title back at the bottom, like the first mockup).
 out/
 node_modules/

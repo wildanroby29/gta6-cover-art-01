@@ -2,19 +2,26 @@
 // labels, seal, sizes, export. State lives here; cover.js draws it.
 // Undo/redo keeps a history of the settings (photos themselves are not part
 // of a history step).
-import { renderCover, exportCoverPNG, COVER_SIZES, COVER_GRADES, COVER_LAYOUTS, TITLE_STYLES, layoutPanels } from './cover.js';
+import { renderCover, exportCoverPNG, COVER_SIZES, COVER_GRADES, COVER_LAYOUTS, layoutPanels } from './cover.js';
 import { runShot } from './shots.js';
 
 const canvas = document.getElementById('cover');
 const statusEl = document.getElementById('status');
 const trayEl = document.getElementById('tray');
-// Six sample photos: four new neon-city characters plus the kit's two.
+// Nine sample photos: the mockup's diverse set first (sunset beach, neon
+// palm street, pink sports car), then the neon-city characters and the kit's two.
 export const SAMPLE_PHOTOS = [
+  { file: 'beach.jpg', label: 'THE SHORE', face: null },
+  { file: 'street.jpg', label: 'THE STRIP', face: null },
+  // The car sits low in its photo (centre ~0.59 down): the crop anchor is
+  // the subject's centre, like faceY for portraits, so a wide short cell
+  // shows the car instead of only sky.
+  { file: 'car.jpg', label: 'THE RIDE', face: 0.59 },
+  { file: 'boulevard.jpg', label: 'THE CREW', face: 0.25 },
   { file: 'mechanic.jpg', label: 'THE MECHANIC', face: 0.16 },
   { file: 'courier.jpg', label: 'THE COURIER', face: 0.18 },
   { file: 'insider.jpg', label: 'THE INSIDER', face: 0.21 },
   { file: 'boss.jpg', label: 'THE BOSS', face: 0.22 },
-  { file: 'boulevard.jpg', label: 'THE CREW', face: 0.25 },
   { file: 'pier.jpg', label: 'THE ANGLER', face: 0.15 },
 ];
 const SAMPLE_LABELS = Object.fromEntries(SAMPLE_PHOTOS.map((s) => [s.file.replace('.jpg', ''), s.label]));
@@ -26,10 +33,10 @@ let drag = null;
 
 const state = {
   layout: 'four-panel',
-  grade: 'neon-night',
+  grade: 'vice-sunset',
   size: '1080x1080',
-  title: 'Last Call',
-  subtitle: 'Neon Avenue',
+  title: 'Vice City',
+  subtitle: 'Neon • Sunset • 1987 — Your story, your city',
   subtitleColor: '#ff5ce1',
   titleStyle: 'chrome-3d',
   heat: 4,
@@ -116,7 +123,6 @@ function redraw() {
   document.querySelectorAll('#sizes button').forEach((b) => b.classList.toggle('active', b.dataset.size === state.size));
   document.querySelectorAll('#layouts button').forEach((b) => b.classList.toggle('active', b.dataset.layout === state.layout));
   document.querySelectorAll('#grades button').forEach((b) => b.classList.toggle('active', b.dataset.grade === state.grade));
-  document.querySelectorAll('#titleStyles button').forEach((b) => b.classList.toggle('active', b.dataset.titleStyle === state.titleStyle));
   const cells = layoutPanels(state.layout, canvas.width, canvas.height, state.strip).cells.length;
   document.getElementById('panelLabel').textContent = `Panel ${Math.min(selectedPanel + 1, cells)} of ${cells}`;
   document.getElementById('panelLabelInput').value = state.slots[selectedPanel].label || '';
@@ -124,15 +130,10 @@ function redraw() {
 
 function syncControls() {
   document.getElementById('title').value = state.title;
-  document.getElementById('subtitle').value = state.subtitle;
-  document.getElementById('subtitleColor').value = state.subtitleColor;
   document.getElementById('heat').value = String(state.heat);
   document.getElementById('strip').checked = state.strip;
   document.getElementById('showLabels').checked = state.showLabels;
   document.getElementById('showSeal').checked = state.showSeal;
-  document.getElementById('brightness').value = String(state.brightness);
-  document.getElementById('contrast').value = String(state.contrast);
-  document.getElementById('glow').value = String(state.glow);
   document.getElementById('zoom').value = String(state.slots[selectedPanel].zoom);
   redraw();
 }
@@ -261,13 +262,6 @@ document.getElementById('grades').addEventListener('click', (e) => {
   pushHistory(); redraw();
   setStatus(`Grade: ${COVER_GRADES[state.grade].name}.`);
 });
-document.getElementById('titleStyles').addEventListener('click', (e) => {
-  const b = e.target.closest('button[data-title-style]');
-  if (!b) return;
-  state.titleStyle = b.dataset.titleStyle;
-  pushHistory(); redraw();
-  setStatus(`Title style: ${TITLE_STYLES[state.titleStyle].name}.`);
-});
 document.getElementById('sizes').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-size]');
   if (!b) return;
@@ -277,10 +271,6 @@ document.getElementById('sizes').addEventListener('click', (e) => {
 });
 document.getElementById('title').addEventListener('input', (e) => { state.title = e.target.value; redraw(); });
 document.getElementById('title').addEventListener('change', pushHistory);
-document.getElementById('subtitle').addEventListener('input', (e) => { state.subtitle = e.target.value; redraw(); });
-document.getElementById('subtitle').addEventListener('change', pushHistory);
-document.getElementById('subtitleColor').addEventListener('input', (e) => { state.subtitleColor = e.target.value; redraw(); });
-document.getElementById('subtitleColor').addEventListener('change', pushHistory);
 document.getElementById('heat').addEventListener('change', (e) => {
   state.heat = Number(e.target.value);
   pushHistory(); redraw();
@@ -302,16 +292,6 @@ document.getElementById('panelLabelInput').addEventListener('input', (e) => {
   redraw();
 });
 document.getElementById('panelLabelInput').addEventListener('change', pushHistory);
-for (const [key, el] of [['brightness', 'brightness'], ['contrast', 'contrast'], ['glow', 'glow']]) {
-  document.getElementById(el).addEventListener('input', (e) => {
-    state[key] = Number(e.target.value);
-    document.getElementById(`${el}Val`).textContent = key === 'glow'
-      ? `${Math.round(state[key] * 100)}%`
-      : `${state[key].toFixed(2)}×`;
-    redraw();
-  });
-  document.getElementById(el).addEventListener('change', pushHistory);
-}
 document.getElementById('zoom').addEventListener('input', (e) => {
   state.slots[selectedPanel].zoom = Number(e.target.value);
   redraw();
@@ -355,7 +335,7 @@ document.getElementById('export-all').addEventListener('click', async () => {
   setStatus('Exported all 3 sizes: 1080×1080, 1080×1350, 1920×1080.');
 });
 
-/** Loads the six sample photos and fills the panels, first run only. */
+/** Loads the nine sample photos and fills the panels, first run only. */
 export async function loadSamples() {
   if (photos.length > 0) return;
   for (const s of SAMPLE_PHOTOS) {
@@ -384,7 +364,7 @@ async function init() {
     await loadSamples();
     syncControls();
     pushHistory();
-    setStatus('Six sample photos loaded. Upload your own, pick a layout, export a PNG.');
+    setStatus('Nine sample photos loaded. Upload your own, pick a layout, export a PNG.');
   }
   await document.fonts.ready;
   redraw();

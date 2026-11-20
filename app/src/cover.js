@@ -1,9 +1,14 @@
 // Neon Chrome cover renderer: draws a GTA-style multi-panel poster cover on
 // a 2D canvas, from any photos and a caption. All art is drawn here — the
-// 3D chrome retro title (real layered extrusion, not flat text), neon script
-// subtitle, character callout tags, gold "Original Cover Art" seal, inked
+// 3D chrome retro title (real layered extrusion, not flat text), small-caps
+// tagline, character callout tags, gold "Original Cover Art" seal, inked
 // panel frames, halftone title block, palm and skyline silhouettes, a retro
 // sun, grain and vignette — no external images, no network.
+//
+// Composition matches the reference mockup: a four-panel grid of diverse
+// scenes (sunset beach, neon palm street, pink sports car, a person), with
+// the giant 3D title in a pink-neon-framed block at the BOTTOM and the
+// story strip under it.
 //
 // Layouts: four-panel grid, hero-and-three, full-bleed, tilted snapshots,
 // nine-panel grid, triptych. Grades: gradient-map colour grades applied per
@@ -259,9 +264,10 @@ export function draw3DText(ctx, text, cx, cy, size, face, edge, glowColor, glow)
   ctx.restore();
 }
 
-/** The title block: halftone field, 3D retro title, neon Pacifico subtitle,
- *  heat stars. `zone` is {x,y,w,h}. `opts` is {titleStyle, subtitleColor,
- *  glow}. */
+/** The title block: pink neon frame, giant 3D retro title, small-caps
+ *  tagline, heat stars. `zone` is {x,y,w,h}. `opts` is {titleStyle,
+ *  subtitleColor, glow}. The title is the biggest, boldest element on the
+ *  cover: it fills most of the block, like the reference mockup. */
 export function drawTitleBlock(ctx, zone, title, subtitle, heat, scale, opts = {}) {
   const { x, y, w, h } = zone;
   const titleStyle = opts.titleStyle ?? 'chrome-3d';
@@ -273,20 +279,26 @@ export function drawTitleBlock(ctx, zone, title, subtitle, heat, scale, opts = {
   bg.addColorStop(1, 'rgba(34,8,48,0.98)');
   ctx.fillStyle = bg;
   ctx.fillRect(x, y, w, h);
-  drawHalftoneField(ctx, { x: x + w * 0.62, y, w: w * 0.38, h }, 'rgba(255,46,196,0.32)');
-  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
-  ctx.lineWidth = 1;
-  ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+  // Pink neon frame around the whole title block, like the mockup.
+  ctx.strokeStyle = '#ff2ec4';
+  ctx.lineWidth = Math.max(2, scale * 0.003);
+  ctx.shadowColor = '#ff2ec4';
+  ctx.shadowBlur = Math.max(6, scale * 0.012);
+  ctx.strokeRect(x + 1.5, y + 1.5, w - 3, h - 3);
+  ctx.shadowBlur = 0;
 
   const text = (title || 'UNTITLED').trim().toUpperCase();
-  let size = h * 0.4;
+  // Anton's caps are unusually tall (cap height 0.86em, ascender 1.18em),
+  // so with textBaseline 'middle' the cap top sits at ty - 0.44*size: the
+  // centre must sit low enough that the caps clear the frame's top edge.
+  let size = h * 0.72;
   ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
   ctx.font = `${size}px Anton, 'Arial Black', sans-serif`;
   while (ctx.measureText(text).width > w * 0.88 && size > 10) {
     size -= 2;
     ctx.font = `${size}px Anton, 'Arial Black', sans-serif`;
   }
-  const ty = y + h * (subtitle ? 0.36 : 0.48);
+  const ty = y + h * (subtitle ? 0.42 : 0.48);
   if (titleStyle === 'chrome-3d') {
     draw3DText(ctx, text, x + w / 2, ty, size,
       ['#ffffff', '#d9b8ff', '#ff5ce1'],
@@ -321,30 +333,37 @@ export function drawTitleBlock(ctx, zone, title, subtitle, heat, scale, opts = {
   const heatLeft = heatRight - heatWidth;
 
   if (subtitle) {
-    const ss0 = Math.max(12, h * 0.2);
+    // Tagline in small caps, like the reference mockup's
+    // "NEON • SUNSET • 1987 — YOUR STORY, YOUR CITY" line: letter-spaced
+    // Anton in the subtitle colour, not script.
+    const tagline = subtitle.trim().toUpperCase();
+    const ss0 = Math.max(11, h * 0.14);
     let ss = ss0;
-    ctx.font = `${ss}px Pacifico, cursive`;
-    // Centre the subtitle in the region left of the heat stars (or the
+    ctx.font = `${ss}px Anton, 'Arial Black', sans-serif`;
+    ctx.letterSpacing = `${Math.max(2, ss * 0.18)}px`;
+    // Centre the tagline in the region left of the heat stars (or the
     // full band when there are none), shrinking only if it still overflows.
     const availL = x + w * 0.03;
     const availR = heat > 0 ? heatLeft - w * 0.02 : x + w - w * 0.03;
     const availW = Math.max(50, availR - availL);
-    while (ctx.measureText(subtitle).width > availW && ss > 10) {
-      ss -= 2;
-      ctx.font = `${ss}px Pacifico, cursive`;
+    while (ctx.measureText(tagline).width > availW && ss > 9) {
+      ss -= 1;
+      ctx.font = `${ss}px Anton, 'Arial Black', sans-serif`;
+      ctx.letterSpacing = `${Math.max(2, ss * 0.18)}px`;
     }
     ctx.fillStyle = subtitleColor;
-    ctx.shadowColor = subtitleColor; ctx.shadowBlur = ss * 0.7;
-    ctx.fillText(subtitle, availL + availW / 2, y + h * 0.78);
+    ctx.shadowColor = subtitleColor; ctx.shadowBlur = ss * 0.6;
+    ctx.fillText(tagline, availL + availW / 2, y + h * 0.82);
     ctx.shadowBlur = 0;
+    ctx.letterSpacing = '0px';
   }
   if (heat > 0) {
-    // On the subtitle's line, right-aligned, so it never crowds the title.
+    // On the tagline's line, right-aligned, so it never crowds the title.
     const hs = Math.max(10, h * 0.13);
     ctx.font = `${hs}px Anton, sans-serif`;
     ctx.textAlign = 'right';
     ctx.fillStyle = '#ffd76a';
-    ctx.fillText(heatText, heatRight, y + h * 0.78);
+    ctx.fillText(heatText, heatRight, y + h * 0.82);
     ctx.textAlign = 'center';
   }
   ctx.restore();

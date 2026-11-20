@@ -71,14 +71,9 @@ input[type="text"], select {
 }
 input[type="text"]:focus, select:focus { outline: 2px solid #ff2ec4; }
 input[type="file"] { display: none; }
-input[type="color"] {
-  width: 100%; height: 36px; margin-top: 4px; padding: 2px;
-  background: #0a0a10; border: 1px solid #3a3a4d; border-radius: 6px; cursor: pointer;
-}
-.color-label { flex: 0 0 84px; }
 .upload-btn {
   display: block; text-align: center; padding: 10px; cursor: pointer;
-  background: linear-gradient(90deg, #ff2ec4, #a855f7); color: #fff;
+  background: linear-gradient(90deg, #ff2ec4, #ff7b2f); color: #fff;
   border-radius: 8px; font-weight: 700; margin: 0 0 8px;
   box-shadow: 0 0 16px rgba(255, 46, 196, 0.35);
 }
@@ -94,28 +89,24 @@ button {
 button:hover { border-color: #ff2ec4; }
 button:disabled { opacity: 0.4; cursor: default; }
 button.active {
-  background: linear-gradient(90deg, #ff2ec4, #a855f7);
+  background: linear-gradient(90deg, #ff2ec4, #ff7b2f);
   border-color: transparent; color: #fff; font-weight: 700;
 }
 button.primary {
-  background: linear-gradient(90deg, #ff2ec4, #a855f7); border: none;
+  background: linear-gradient(90deg, #ff2ec4, #ff7b2f); border: none;
   font-weight: 800; font-size: 15px; padding: 11px;
   box-shadow: 0 0 20px rgba(255, 46, 196, 0.45);
 }
 .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .btn-grid.sizes { grid-template-columns: 1fr 1fr 1fr; }
 .btn-grid.samples { grid-template-columns: 1fr 1fr 1fr; }
-.btn-grid.title-styles { grid-template-columns: 1fr 1fr 1fr; }
 .grades button {
   background: linear-gradient(135deg, var(--g1), var(--g2));
   border: none; color: #fff; font-weight: 700;
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.6);
 }
 .grades button.active { outline: 3px solid #fff; }
-.sliders { margin-top: 10px; display: flex; flex-direction: column; gap: 4px; }
-.sliders label { margin: 2px 0; }
-.sliders input[type="range"] { width: 100%; accent-color: #ff2ec4; margin-top: 2px; }
-.sliders .val { float: right; color: #ff5ce1; font-weight: 700; font-size: 12px; }
+.export-note { margin: 8px 0 0; color: #8d84a3; font-size: 12.5px; text-align: center; }
 .tray { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; min-height: 96px; }
 .thumb { padding: 0; border: 2px solid #2a2a3a; border-radius: 6px; overflow: hidden; background: none; }
 .thumb canvas { display: block; width: 96px; height: 96px; }

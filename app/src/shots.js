@@ -1,5 +1,8 @@
 // Fixed scenes for screenshots: ?shot=cover shows one exported cover alone at
 // its export size; ?shot=editor shows the editor with sample photos loaded.
+// The default cover matches the reference mockup: diverse scenes (sunset
+// beach, neon palm street, pink sports car, a person) with the giant 3D
+// title in its pink-neon-framed block at the bottom.
 // Query params: layout, grade, size (1080x1080|1080x1350|1920x1080), title,
 // subtitle, subtitleColor, titleStyle (chrome-3d|gold-3d|flat), heat (0-5),
 // strip (0|1), labels (0|1), seal (0|1), brightness, contrast, glow,
@@ -23,10 +26,11 @@ export async function runShot(shot, query, api) {
   state.brightness = Number(get('brightness', '1'));
   state.contrast = Number(get('contrast', '1'));
   state.glow = Number(get('glow', '0.7'));
-  const photoNames = (get('photos', 'mechanic,courier,insider,boss') || '').split(',').map((s) => s.trim()).filter(Boolean);
+  const photoNames = (get('photos', 'beach,street,car,boulevard') || '').split(',').map((s) => s.trim()).filter(Boolean);
   const photoIds = photoNames.map((name) => api.photoIdByName(name)).filter(Boolean);
-  const fallback = api.photoIdByName('mechanic');
+  const fallback = api.photoIdByName('beach');
   const labels = {
+    beach: 'THE SHORE', street: 'THE STRIP', car: 'THE RIDE',
     mechanic: 'THE MECHANIC', courier: 'THE COURIER', insider: 'THE INSIDER',
     boss: 'THE BOSS', boulevard: 'THE CREW', pier: 'THE ANGLER',
   };
