@@ -79,22 +79,39 @@ const CREAM = '#f2ede3';
 // between the rows (hero, six-grid) or across the strips' middles
 // (diagonal), always clear of the panels' face zones.
 function layoutGeometry(layout, W, H) {
-  // Golden Mile (#1) formula: panels fill 0.05H to 0.94H between a top
-  // strip and a bottom band; the title sits in the MIDDLE over the panels
-  // (its band is clear of every face's eyes), never in a separate strip.
+  // Golden Mile (#1) adapts the composition PER SIZE — each aspect ratio
+  // gets its own layout, not the same grid scaled. Portrait (4:5) is the
+  // most different: 4 tall vertical panels on top, then a huge title, a
+  // script subtitle, a ribbon, and a vivid scene at the bottom.
+  if (H > W) {
+    // Portrait: 4 tall vertical panels (Mechanic, Boss, Driver, Smuggler
+    // in the bucket hat, like #1's Captain) across the top half.
+    const panels = [];
+    const slots = [2, 0, 1, 5];
+    for (let c = 0; c < 4; c++) {
+      panels.push({ x: c * 0.25 * W, y: 0.04 * H, w: 0.25 * W, h: 0.46 * H, rot: 0, slant: 0, slot: slots[c] });
+    }
+    return { panels, titleTop: 0.52, bandTop: 0.94, portrait: true };
+  }
+  if (Math.abs(W - H) < 1) {
+    // Square (1:1): 3 panels on top + 3 on the bottom, the title in the
+    // MIDDLE between the rows with a ribbon above it (like #1's square).
+    const top = [
+      { x: 0.01 * W, y: 0.05 * H, w: 0.32 * W, h: 0.30 * H, rot: 0, slant: 0, slot: 1 },
+      { x: 0.34 * W, y: 0.05 * H, w: 0.32 * W, h: 0.30 * H, rot: 0, slant: 0, slot: 0 },
+      { x: 0.67 * W, y: 0.05 * H, w: 0.32 * W, h: 0.30 * H, rot: 0, slant: 0, slot: 2 },
+    ];
+    const bottom = [
+      { x: 0.01 * W, y: 0.64 * H, w: 0.32 * W, h: 0.30 * H, rot: 0, slant: 0, slot: 4 },
+      { x: 0.34 * W, y: 0.64 * H, w: 0.32 * W, h: 0.30 * H, rot: 0, slant: 0, slot: 5 },
+      { x: 0.67 * W, y: 0.64 * H, w: 0.32 * W, h: 0.30 * H, rot: 0, slant: 0, slot: 6 },
+    ];
+    return { panels: [...top, ...bottom], titleTop: 0.40, bandTop: 0.94, square: true };
+  }
+  // Landscape (16:9): mosaic with a large hero close-up centre-top, the
+  // title in the MIDDLE over the panels.
   const topRowY = 0.05, stripTop = 0.05;
   if (layout === 'six-grid') {
-    // Portrait canvases (H > W) use 2 columns x 3 rows so no face is cut
-    // by the title or an edge; landscape stays 3x2.
-    if (H > W) {
-      const panels = [];
-      for (let r = 0; r < 3; r++) {
-        for (let c = 0; c < 2; c++) {
-          panels.push({ x: c * 0.5 * W, y: (0.05 + r * (0.89 / 3)) * H, w: 0.5 * W, h: (0.89 / 3) * H, rot: 0, slant: 0, slot: r * 2 + c });
-        }
-      }
-      return { panels, titleTop: 0.485, bandTop: 0.94 };
-    }
     return {
       panels: gridPanels(W, H, 0.05, 0.355, 0.62, 0.30, [1, 0, 2], [3, 5, 4]),
       titleTop: 0.43, bandTop: 0.92,
@@ -470,8 +487,9 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
     });
   }
 
-  // Original scene (sun, skyline, palms) behind the title band.
-  drawScene(ctx, W, H, geo.titleTop);
+  // Original scene (sun, skyline, palms) behind the title band — but NOT
+  // for portrait, where the scene lives at the bottom instead.
+  if (!geo.portrait) drawScene(ctx, W, H, geo.titleTop);
 
   // Title: layered Anton — vertical gradient fill, thick dark outline,
   // soft shadow — stretched to fill the width.
@@ -550,44 +568,99 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
     ctx.fillText(ribbonText, W / 2, ry + rh / 2 + 1);
   }
 
+  // Portrait: a vivid pink/magenta scene fills the bottom (like #1's
+  // portrait) — palm + skyline silhouettes over a sunset gradient. The
+  // billing, seal, barcode and COMING SOON sit on it, not in a black band.
+  if (geo.portrait) {
+    const sy = 0.74 * H;
+    const sg = ctx.createLinearGradient(0, sy, 0, H);
+    sg.addColorStop(0, '#ff5e8a');
+    sg.addColorStop(0.55, '#e83e8c');
+    sg.addColorStop(1, '#7b1e5e');
+    ctx.fillStyle = sg;
+    ctx.fillRect(0, sy, W, H - sy);
+    // Skyline + palm silhouettes (dark purple) along the scene.
+    ctx.fillStyle = 'rgba(40,8,40,0.85)';
+    const base = H;
+    let bx = 0;
+    const bw = W / 14;
+    for (let i = 0; i < 14; i++) {
+      const bh = (0.03 + 0.05 * ((i * 37) % 10) / 10) * H;
+      ctx.fillRect(bx, base - bh, bw * 0.7, bh);
+      bx += bw;
+    }
+    // Two palm silhouettes at the left and right edges.
+    ctx.strokeStyle = 'rgba(40,8,40,0.9)';
+    ctx.lineWidth = Math.max(3, 0.006 * W);
+    ctx.beginPath();
+    ctx.moveTo(0.06 * W, H);
+    ctx.quadraticCurveTo(0.02 * W, sy + 0.12 * H, 0.10 * W, sy + 0.06 * H);
+    ctx.moveTo(0.94 * W, H);
+    ctx.quadraticCurveTo(0.98 * W, sy + 0.12 * H, 0.90 * W, sy + 0.06 * H);
+    ctx.stroke();
+  }
+
   // Bottom band: billing, release line, barcode (like #1 Golden Mile).
   const bandTop = geo.bandTop * H;
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, bandTop, W, H - bandTop);
-  ctx.fillStyle = '#d8c690';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  const bfs = Math.max(10, Math.round(0.011 * W));
-  ctx.font = `${bfs}px Arial, sans-serif`;
-  const billingLines = wrapLines(ctx, state.billing || BILLING_DEFAULT, 0.62 * W);
-  const lineH = bfs * 1.5;
-  const billingTop = bandTop + (H - bandTop) / 2 - ((billingLines.length - 1) * lineH) / 2;
-  billingLines.forEach((line, i) => ctx.fillText(line, W / 2, billingTop + i * lineH));
-  ctx.textAlign = 'left';
-  ctx.font = `700 ${Math.round(0.015 * Math.min(W, H))}px Arial, sans-serif`;
-  ctx.fillStyle = GOLD;
-  try { ctx.letterSpacing = '4px'; } catch (e) { /* older canvas: no letter spacing */ }
-  ctx.fillText((state.release || 'COMING SOON').toUpperCase(), 0.02 * W, bandTop + (H - bandTop) / 2);
-  try { ctx.letterSpacing = '0px'; } catch (e) { /* older canvas */ }
-  // Small rating box (original, fictional) just left of the barcode.
-  const rbW = 0.038 * W, rbH = (H - bandTop) * 0.62, rbX = W - 0.115 * W, rbY = bandTop + 0.008 * H;
-  ctx.strokeStyle = '#f2ede3';
-  ctx.lineWidth = Math.max(2, 0.0015 * W);
-  ctx.strokeRect(rbX, rbY, rbW, rbH);
-  ctx.fillStyle = '#f2ede3';
-  ctx.font = `800 ${Math.round(rbH * 0.52)}px Arial, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('M', rbX + rbW / 2, rbY + rbH * 0.42);
-  ctx.font = `700 ${Math.max(7, Math.round(rbH * 0.14))}px Arial, sans-serif`;
-  ctx.fillText('MATURE', rbX + rbW / 2, rbY + rbH * 0.86);
-  drawBarcode(ctx, W - 0.065 * W, bandTop + 0.008 * H, 0.045 * W, (H - bandTop) * 0.62);
+  if (!geo.portrait) {
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, bandTop, W, H - bandTop);
+  }
+  if (geo.portrait) {
+    // Portrait: billing in white on the pink scene, COMING SOON centred
+    // at the very bottom, barcode at the bottom-left (like #1).
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const bfs = Math.max(10, Math.round(0.011 * W));
+    ctx.font = `${bfs}px Arial, sans-serif`;
+    const billingLines = wrapLines(ctx, state.billing || BILLING_DEFAULT, 0.72 * W);
+    const lineH = bfs * 1.5;
+    const billingTop = 0.86 * H - ((billingLines.length - 1) * lineH) / 2;
+    billingLines.forEach((line, i) => ctx.fillText(line, W / 2, billingTop + i * lineH));
+    ctx.font = `700 ${Math.round(0.016 * Math.min(W, H))}px Arial, sans-serif`;
+    ctx.fillStyle = '#ffd9ec';
+    try { ctx.letterSpacing = '6px'; } catch (e) { /* older canvas */ }
+    ctx.fillText((state.release || 'COMING SOON').toUpperCase(), W / 2, 0.975 * H);
+    try { ctx.letterSpacing = '0px'; } catch (e) { /* older canvas */ }
+    drawBarcode(ctx, 0.02 * W, 0.925 * H, 0.09 * W, 0.045 * H);
+  } else {
+    ctx.fillStyle = '#d8c690';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const bfs = Math.max(10, Math.round(0.011 * W));
+    ctx.font = `${bfs}px Arial, sans-serif`;
+    const billingLines = wrapLines(ctx, state.billing || BILLING_DEFAULT, 0.62 * W);
+    const lineH = bfs * 1.5;
+    const billingTop = bandTop + (H - bandTop) / 2 - ((billingLines.length - 1) * lineH) / 2;
+    billingLines.forEach((line, i) => ctx.fillText(line, W / 2, billingTop + i * lineH));
+    ctx.textAlign = 'left';
+    ctx.font = `700 ${Math.round(0.015 * Math.min(W, H))}px Arial, sans-serif`;
+    ctx.fillStyle = GOLD;
+    try { ctx.letterSpacing = '4px'; } catch (e) { /* older canvas: no letter spacing */ }
+    ctx.fillText((state.release || 'COMING SOON').toUpperCase(), 0.02 * W, bandTop + (H - bandTop) / 2);
+    try { ctx.letterSpacing = '0px'; } catch (e) { /* older canvas */ }
+    // Small rating box (original, fictional) just left of the barcode.
+    const rbW = 0.038 * W, rbH = (H - bandTop) * 0.62, rbX = W - 0.115 * W, rbY = bandTop + 0.008 * H;
+    ctx.strokeStyle = '#f2ede3';
+    ctx.lineWidth = Math.max(2, 0.0015 * W);
+    ctx.strokeRect(rbX, rbY, rbW, rbH);
+    ctx.fillStyle = '#f2ede3';
+    ctx.font = `800 ${Math.round(rbH * 0.52)}px Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('M', rbX + rbW / 2, rbY + rbH * 0.42);
+    ctx.font = `700 ${Math.max(7, Math.round(rbH * 0.14))}px Arial, sans-serif`;
+    ctx.fillText('MATURE', rbX + rbW / 2, rbY + rbH * 0.86);
+    drawBarcode(ctx, W - 0.065 * W, bandTop + 0.008 * H, 0.045 * W, (H - bandTop) * 0.62);
+  }
 
   // Gold seal (Neon Night: blue), just right of the title in the title zone —
-  // clear of every face.
+  // clear of every face. Portrait: over the scene, lower right (like #1).
   if (state.showSeal !== false) {
     const sr = Math.max(26, 0.034 * W);
-    const scx = Math.min(0.96 * W, titleRight + sr + 0.008 * W), scy = titleTop + capH * 0.5;
+    const scx = geo.portrait ? 0.88 * W : Math.min(0.96 * W, titleRight + sr + 0.008 * W);
+    const scy = geo.portrait ? 0.80 * H : titleTop + capH * 0.5;
     const neon = state.grade === 'neon-night';
     ctx.save();
     ctx.beginPath();
