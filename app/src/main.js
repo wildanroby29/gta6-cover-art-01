@@ -15,8 +15,8 @@ const photos = new Map(); // id -> {id, name, label, img, faceX, faceY}
 let photoSeq = 0;
 
 const state = {
-  layout: 'neon-noir',
-  grade: 'neon-noir',
+  layout: 'six-grid',
+  grade: 'sunset-gold',
   size: '1920x1080',
   title: 'Vice City',
   subtitle: 'Neon Nights',
@@ -275,8 +275,8 @@ document.getElementById('autofill').addEventListener('click', () => {
   pushHistory();
 });
 document.getElementById('shuffle').addEventListener('click', () => {
-  const layouts = ['hero-mosaic', 'diagonal-strips', 'six-grid', 'neon-noir'];
-  const grades = ['sunset-gold', 'neon-night', 'tropic-teal', 'ultraviolet', 'retro-print', 'neon-noir'];
+  const layouts = ['hero-mosaic', 'diagonal-strips', 'six-grid'];
+  const grades = ['sunset-gold', 'neon-night', 'tropic-teal', 'ultraviolet', 'retro-print'];
   state.layout = layouts[Math.floor(Math.random() * layouts.length)];
   state.grade = grades[Math.floor(Math.random() * grades.length)];
   const ids = [...photos.keys()];

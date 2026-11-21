@@ -18,7 +18,6 @@ export const LAYOUTS = {
   'hero-mosaic': { name: 'Hero Mosaic', cells: 7 },
   'diagonal-strips': { name: 'Diagonal Strips', cells: 7 },
   'six-grid': { name: 'Six Grid', cells: 6 },
-  'neon-noir': { name: 'Neon Noir', cells: 5 },
 };
 
 export const GRADES = {
@@ -27,7 +26,6 @@ export const GRADES = {
   'tropic-teal': { name: 'Tropic Teal', filter: 'saturate(1.15) contrast(1.06)', wash: 'rgba(0,180,160,0.15)' },
   'ultraviolet': { name: 'Ultraviolet', filter: 'hue-rotate(35deg) saturate(1.35) contrast(1.08)', wash: 'rgba(120,40,255,0.12)' },
   'retro-print': { name: 'Retro Print', filter: 'sepia(0.35) contrast(0.95) brightness(1.06) saturate(0.9)', wash: 'rgba(255,240,200,0.05)' },
-  'neon-noir': { name: 'Neon Noir', filter: 'saturate(1.5) contrast(1.18) brightness(0.82) hue-rotate(-12deg)', wash: 'rgba(90,20,170,0.22)' },
 };
 
 // The seven-person demo cast: file, role tag and face centre (fractions of
@@ -45,16 +43,17 @@ export const CAST = [
 ];
 
 // Crop variants for one photo filling the whole collage: each slot gets a
-// different window of the same photo (centre, left, right, zoomed face,
-// wide), so a single photo still makes a full poster.
+// CLEARLY different window of the same photo — wide, medium left, tight on
+// the eyes, medium right off-centre, wide low, tight lower, tight upper
+// right — never five near-identical strips.
 export const SINGLE_PHOTO_CROPS = [
   { zoom: 1.0, ox: 0, oy: 0 },
-  { zoom: 1.5, ox: -220, oy: 0 },
-  { zoom: 1.5, ox: 220, oy: 0 },
-  { zoom: 2.2, ox: 0, oy: -60 },
-  { zoom: 1.0, ox: 0, oy: 90 },
-  { zoom: 1.7, ox: -160, oy: 60 },
-  { zoom: 1.7, ox: 160, oy: -60 },
+  { zoom: 1.6, ox: -260, oy: 0 },
+  { zoom: 2.6, ox: 0, oy: -120 },
+  { zoom: 1.5, ox: 260, oy: 40 },
+  { zoom: 1.0, ox: 0, oy: 140 },
+  { zoom: 2.0, ox: -120, oy: 100 },
+  { zoom: 1.8, ox: 180, oy: -80 },
 ];
 
 export function applySinglePhotoCrops(slots, photoId, label) {
@@ -80,31 +79,19 @@ const CREAM = '#f2ede3';
 // between the rows (hero, six-grid) or across the strips' middles
 // (diagonal), always clear of the panels' face zones.
 function layoutGeometry(layout, W, H) {
-  const topRowY = 0.05, stripTop = 0.05;
+  // Panels fill the whole canvas (no black bands above or below); the
+  // title sits at the bottom over a dark gradient strip.
+  const topRowY = 0, stripTop = 0;
   if (layout === 'six-grid') {
-    // Top row 0.355 (not 0.37): leaves a clear gap between the top-row name
-    // tags and the title band above them.
     return {
-      panels: gridPanels(W, H, 0.05, 0.355, 0.62, 0.30, [1, 0, 2], [3, 5, 4]),
-      titleTop: 0.43, bandTop: 0.92,
+      panels: gridPanels(W, H, 0, 0.50, 0.50, 0.50, [1, 0, 2], [3, 5, 4]),
+      titleTop: 0.78, bandTop: 1.0,
     };
-  }
-  if (layout === 'neon-noir') {
-    // Five tall vertical film strips; the right ~15% stays clear for the
-    // vertical title column. Strips are full height, no slant.
-    const strips = [];
-    const gap = 0.008 * W;
-    const avail = 0.84 * W - 0.01 * W;
-    const sw = (avail - 4 * gap) / 5;
-    for (let i = 0; i < 5; i++) {
-      strips.push({ x: 0.01 * W + i * (sw + gap), y: 0.05 * H, w: sw, h: 0.90 * H, rot: 0, slant: 0, slot: i });
-    }
-    return { panels: strips, titleTop: 0.05, bandTop: 0.95, verticalTitle: true };
   }
   if (layout === 'diagonal-strips') {
     return {
-      panels: stripPanels(W, H, stripTop, 0.94),
-      titleTop: 0.485, bandTop: 0.94,
+      panels: stripPanels(W, H, stripTop, 1.0),
+      titleTop: 0.78, bandTop: 1.0,
     };
   }
   // hero-mosaic (default): Boss hero centre-top, six around.
@@ -114,15 +101,15 @@ function layoutGeometry(layout, W, H) {
   let x = 0.01;
   const slotOrder = [1, 2, 0, 3]; // Driver, Mechanic, Boss, Hustler
   widths.forEach((w, i) => {
-    top.push({ x: x * W, y: topRowY * H, w: w * W, h: 0.42 * H, rot: i === 2 ? -0.02 : 0, slant: 0, slot: slotOrder[i] });
+    top.push({ x: x * W, y: topRowY * H, w: w * W, h: 0.50 * H, rot: i === 2 ? -0.02 : 0, slant: 0, slot: slotOrder[i] });
     x += w + 0.01;
   });
   const bottom = [
-    { x: 0.01 * W, y: 0.67 * H, w: 0.32 * W, h: 0.28 * H, rot: 0, slant: 0, slot: 4 },
-    { x: 0.34 * W, y: 0.67 * H, w: 0.32 * W, h: 0.28 * H, rot: 0, slant: 0, slot: 5 },
-    { x: 0.67 * W, y: 0.67 * H, w: 0.32 * W, h: 0.28 * H, rot: 0, slant: 0, slot: 6 },
+    { x: 0.01 * W, y: 0.50 * H, w: 0.32 * W, h: 0.50 * H, rot: 0, slant: 0, slot: 4 },
+    { x: 0.34 * W, y: 0.50 * H, w: 0.32 * W, h: 0.50 * H, rot: 0, slant: 0, slot: 5 },
+    { x: 0.67 * W, y: 0.50 * H, w: 0.32 * W, h: 0.50 * H, rot: 0, slant: 0, slot: 6 },
   ];
-  return { panels: [...top, ...bottom], titleTop: 0.485, bandTop: 0.95 };
+  return { panels: [...top, ...bottom], titleTop: 0.78, bandTop: 1.0 };
 }
 
 // Three-by-two grid; topSlots/bottomSlots name the slot index per cell.
@@ -327,55 +314,6 @@ function drawScene(ctx, W, H, titleTop) {
   }
 }
 
-// Neon Noir vertical title: the caption stacked as upright letters down
-// the right column, hot pink neon with a glow.
-function drawVerticalTitle(ctx, W, H, state) {
-  const text = (state.title || 'Vice City').toUpperCase().replace(/\s+/g, '');
-  const chars = text.split('');
-  const colX = 0.925 * W;
-  const colW = 0.13 * W;
-  const top = 0.06 * H, bot = 0.94 * H;
-  const size = Math.max(20, Math.min(colW * 0.95, (bot - top) / (chars.length * 1.08)));
-  ctx.save();
-  ctx.font = `${Math.round(size)}px Anton, 'Arial Black', sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.lineJoin = 'round';
-  const step = (bot - top) / chars.length;
-  chars.forEach((ch, i) => {
-    const cy = top + step * (i + 0.5);
-    ctx.shadowColor = '#ff2ec4';
-    ctx.shadowBlur = Math.round(size * 0.35);
-    ctx.strokeStyle = '#1a0512';
-    ctx.lineWidth = size * 0.08;
-    ctx.strokeText(ch, colX, cy);
-    const g = ctx.createLinearGradient(colX, cy - size / 2, colX, cy + size / 2);
-    g.addColorStop(0, '#ff7ae0');
-    g.addColorStop(0.5, '#ff2ec4');
-    g.addColorStop(1, '#c400a0');
-    ctx.fillStyle = g;
-    ctx.fillText(ch, colX, cy);
-  });
-  ctx.restore();
-}
-
-// Film-strip frame: black side borders with sprocket holes, for Neon Noir.
-function drawFilmFrames(ctx, panels) {
-  for (const p of panels) {
-    const bw = Math.max(6, p.w * 0.06);
-    ctx.fillStyle = '#0a0a12';
-    ctx.fillRect(p.x, p.y, bw, p.h);
-    ctx.fillRect(p.x + p.w - bw, p.y, bw, p.h);
-    ctx.fillStyle = 'rgba(240,230,255,0.85)';
-    const holeW = bw * 0.55, holeH = Math.max(4, p.h * 0.018);
-    const gap = holeH * 1.6;
-    for (let y = p.y + gap; y + holeH < p.y + p.h - gap; y += gap + holeH) {
-      ctx.fillRect(p.x + (bw - holeW) / 2, y, holeW, holeH);
-      ctx.fillRect(p.x + p.w - bw + (bw - holeW) / 2, y, holeW, holeH);
-    }
-  }
-}
-
 /** Draws the whole cover. photos: Map of photoId -> {img, faceX, faceY, label}. */
 export function drawCover(ctx, W, H, state, photos, opts = {}) {
   const grade = GRADES[state.grade] || GRADES['sunset-gold'];
@@ -393,40 +331,45 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
     drawPhoto(ctx, photo.img, p, slot, { x: photo.faceX, y: photo.faceY }, grade);
   }
 
-  // Cinematic grade, under the lettering: the grade's own wash, then a
-  // strong pink-to-orange sunset gradient (obvious at thumbnail size), a
-  // soft bloom glow, a deep vignette, and subtle film grain on every grade.
+  // Cinematic grade, under the lettering: the grade's own wash in
+  // soft-light (about a quarter strength, so skin tones stay natural),
+  // then a gentle warm pink-to-orange gradient mostly at the top and
+  // bottom, a light bloom, a light vignette, and a little film grain.
+  ctx.save();
+  ctx.globalCompositeOperation = 'soft-light';
+  ctx.globalAlpha = 0.30;
   ctx.fillStyle = grade.wash;
   ctx.fillRect(0, 0, W, H);
+  ctx.restore();
   const sun = ctx.createLinearGradient(0, 0, 0, H);
-  sun.addColorStop(0, 'rgba(255,92,225,0.20)');
-  sun.addColorStop(0.45, 'rgba(255,140,60,0.12)');
-  sun.addColorStop(1, 'rgba(255,90,40,0.20)');
+  sun.addColorStop(0, 'rgba(255,92,225,0.10)');
+  sun.addColorStop(0.45, 'rgba(255,140,60,0.05)');
+  sun.addColorStop(1, 'rgba(255,90,40,0.10)');
   ctx.fillStyle = sun;
   ctx.fillRect(0, 0, W, H);
   // Soft bloom: a warm glow centred on the title zone.
   ctx.save();
   ctx.globalCompositeOperation = 'screen';
   const bloom = ctx.createRadialGradient(W / 2, H * 0.52, 0, W / 2, H * 0.52, Math.max(W, H) * 0.42);
-  bloom.addColorStop(0, 'rgba(255,220,160,0.30)');
-  bloom.addColorStop(0.55, 'rgba(255,160,90,0.12)');
+  bloom.addColorStop(0, 'rgba(255,220,160,0.15)');
+  bloom.addColorStop(0.55, 'rgba(255,160,90,0.06)');
   bloom.addColorStop(1, 'rgba(255,160,90,0)');
   ctx.fillStyle = bloom;
   ctx.fillRect(0, 0, W, H);
   ctx.restore();
   const vig = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
   vig.addColorStop(0, 'rgba(0,0,0,0)');
-  vig.addColorStop(1, 'rgba(0,0,0,0.34)');
+  vig.addColorStop(1, 'rgba(0,0,0,0.18)');
   ctx.fillStyle = vig;
   ctx.fillRect(0, 0, W, H);
-  // Film grain on every grade: deterministic dots, so exports are stable.
+  // A little film grain on every grade: deterministic dots, so exports are stable.
   ctx.fillStyle = 'rgba(255,255,255,0.05)';
-  for (let i = 0; i < 1400; i++) {
+  for (let i = 0; i < 700; i++) {
     const x = (i * 7919) % W, y = (i * 104729) % H;
     ctx.fillRect(x, y, 1.5, 1.5);
   }
   ctx.fillStyle = 'rgba(0,0,0,0.05)';
-  for (let i = 0; i < 900; i++) {
+  for (let i = 0; i < 450; i++) {
     const x = (i * 104729 + 401) % W, y = (i * 7919 + 977) % H;
     ctx.fillRect(x, y, 1.5, 1.5);
   }
@@ -445,31 +388,12 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
     ctx.fillRect(0, 0, W, H);
   }
 
-  // Neon Noir: film-strip frames over the panels, crisp above the grade.
-  if (state.layout === 'neon-noir') drawFilmFrames(ctx, geo.panels);
-
-  // Top strip: five stars, quote, edition tag.
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, 0, W, 0.05 * H);
-  const stripY = 0.025 * H;
-  ctx.fillStyle = GOLD;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  const quoteText = `${'★'.repeat(state.heat || 5)}  ${(state.quote || '').toUpperCase()} — ${(state.quoteSource || '').toUpperCase()}`;
-  ctx.font = `700 ${Math.round(0.016 * H)}px Arial, sans-serif`;
-  // Stars are the ★ characters in the centred quote line: one tidy row.
-  ctx.fillText(quoteText, W / 2, stripY);
-  ctx.font = `700 ${Math.round(0.013 * H)}px Arial, sans-serif`;
-  const ed = (state.edition || 'VOL. 1').toUpperCase();
-  const edW = ctx.measureText(ed).width + 0.016 * W;
-  ctx.strokeStyle = GOLD;
-  ctx.lineWidth = Math.max(1, 0.0015 * W);
-  ctx.strokeRect(W - 0.015 * W - edW, stripY - 0.016 * H, edW, 0.032 * H);
-  ctx.fillStyle = GOLD;
-  ctx.fillText(ed, W - 0.015 * W - edW / 2, stripY);
-
-  // Name tags + editor badges on the panels.
-  if (state.showLabels !== false) {
+  // Name tags only when the panels hold DIFFERENT photos; when one photo
+  // fills several panels, the crops speak for themselves and labels would
+  // just repeat the same word.
+  const distinctPhotos = new Set(geo.panels.map((p) => state.slots[p.slot] && state.slots[p.slot].photoId).filter(Boolean)).size;
+  const showLabels = state.showLabels !== false && distinctPhotos > 1;
+  if (showLabels) {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     for (const p of geo.panels) {
@@ -519,12 +443,13 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
     });
   }
 
-  // Neon Noir: a vertical title column instead of the horizontal band.
-  if (geo.verticalTitle) {
-    drawVerticalTitle(ctx, W, H, state);
-  } else {
-  // Original scene (sun, skyline, palms) behind the title band.
-  drawScene(ctx, W, H, geo.titleTop);
+  // Dark gradient strip at the bottom, behind the horizontal title.
+  const dg = ctx.createLinearGradient(0, 0.72 * H, 0, H);
+  dg.addColorStop(0, 'rgba(0,0,0,0)');
+  dg.addColorStop(0.45, 'rgba(0,0,0,0.45)');
+  dg.addColorStop(1, 'rgba(0,0,0,0.70)');
+  ctx.fillStyle = dg;
+  ctx.fillRect(0, 0.72 * H, W, 0.28 * H);
 
   // Title: layered Anton — vertical gradient fill, thick dark outline,
   // soft shadow — stretched to fill the width.
@@ -579,65 +504,20 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
   ctx.fillText(state.subtitle || '', W / 2, subY);
   ctx.restore();
 
-  // Tagline ribbon (Neon Night: cyan; otherwise orange).
-  const ribbonText = (state.ribbon || '').toUpperCase();
-  if (ribbonText) {
-    const rfs = Math.max(11, Math.round(0.013 * H));
-    ctx.font = `800 ${rfs}px Arial, sans-serif`;
-    const rw = ctx.measureText(ribbonText).width + rfs * 2.4;
-    const rh = 0.024 * H;
-    const ry = subY + 0.022 * H;
-    const grad = ctx.createLinearGradient(W / 2 - rw / 2, 0, W / 2 + rw / 2, 0);
-    if (state.grade === 'neon-night') {
-      grad.addColorStop(0, '#19c8e8');
-      grad.addColorStop(1, '#7ff7ff');
-    } else {
-      grad.addColorStop(0, '#ff8a3d');
-      grad.addColorStop(1, '#ff5e3d');
-    }
-    ctx.fillStyle = grad;
-    ctx.fillRect(W / 2 - rw / 2, ry, rw, rh);
-    ctx.fillStyle = '#1a1206';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(ribbonText, W / 2, ry + rh / 2 + 1);
-  }
-  } // end of the horizontal-title branch (Neon Noir uses the vertical title)
-
-  // Bottom band: billing, release line, barcode.
-  const bandTop = geo.bandTop * H;
-  ctx.fillStyle = '#000';
-  ctx.fillRect(0, bandTop, W, H - bandTop);
-  ctx.fillStyle = '#d8c690';
+  // Credit line: one small centred line at the very top, clear of the
+  // title, subtitle and panel labels below it (the bottom row's labels sit
+  // at the bottom edge, so the credit cannot live there).
+  ctx.fillStyle = 'rgba(216,198,144,0.9)';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  const bfs = Math.max(10, Math.round(0.011 * W));
+  const bfs = Math.max(9, Math.round(0.009 * W));
   ctx.font = `${bfs}px Arial, sans-serif`;
-  const billingLines = wrapLines(ctx, state.billing || BILLING_DEFAULT, 0.62 * W);
-  const lineH = bfs * 1.5;
-  const billingTop = bandTop + (H - bandTop) / 2 - ((billingLines.length - 1) * lineH) / 2;
-  billingLines.forEach((line, i) => ctx.fillText(line, W / 2, billingTop + i * lineH));
-  // Release line, left; barcode, right. The release scales with the smaller
-  // canvas dimension so it never crowds the centred billing on tall canvases.
-  ctx.textAlign = 'left';
-  ctx.font = `700 ${Math.round(0.015 * Math.min(W, H))}px Arial, sans-serif`;
-  ctx.fillStyle = GOLD;
-  try { ctx.letterSpacing = '4px'; } catch (e) { /* older canvas: no letter spacing */ }
-  ctx.fillText((state.release || 'COMING SOON').toUpperCase(), 0.02 * W, bandTop + (H - bandTop) / 2);
-  try { ctx.letterSpacing = '0px'; } catch (e) { /* older canvas */ }
-  // Small rating box (original, fictional) just left of the barcode.
-  const rbW = 0.038 * W, rbH = (H - bandTop) * 0.62, rbX = W - 0.115 * W, rbY = bandTop + 0.008 * H;
-  ctx.strokeStyle = '#f2ede3';
-  ctx.lineWidth = Math.max(2, 0.0015 * W);
-  ctx.strokeRect(rbX, rbY, rbW, rbH);
-  ctx.fillStyle = '#f2ede3';
-  ctx.font = `800 ${Math.round(rbH * 0.52)}px Arial, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('M', rbX + rbW / 2, rbY + rbH * 0.42);
-  ctx.font = `700 ${Math.max(7, Math.round(rbH * 0.14))}px Arial, sans-serif`;
-  ctx.fillText('MATURE', rbX + rbW / 2, rbY + rbH * 0.86);
-  drawBarcode(ctx, W - 0.065 * W, bandTop + 0.008 * H, 0.045 * W, (H - bandTop) * 0.62);
+  const credit = (state.billing || BILLING_DEFAULT).toUpperCase();
+  const creditW = ctx.measureText(credit).width;
+  if (creditW > 0.92 * W) {
+    ctx.font = `${Math.max(8, Math.round(bfs * (0.92 * W / creditW)))}px Arial, sans-serif`;
+  }
+  ctx.fillText(credit, W / 2, 0.022 * H);
 
   // Gold seal (Neon Night: blue), just right of the title in the title zone —
   // clear of every face.
