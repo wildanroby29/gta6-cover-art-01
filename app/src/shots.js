@@ -9,14 +9,14 @@
 // edition, labels (0|1), seal (0|1), heat (0-5), photos (comma list of cast
 // ids, in slot order). window.__shotReady is set once painted, after the
 // fonts are in.
-import { CAST, BILLING_DEFAULT } from './cover.js';
+import { CAST, BILLING_DEFAULT, applySinglePhotoCrops } from './cover.js';
 
 export async function runShot(shot, query, api) {
   const { state, loadSamples, redraw, pushHistory, syncControls } = api;
   await loadSamples();
   const get = (k, d) => query.get(k) ?? d;
-  state.layout = get('layout', 'hero-mosaic');
-  state.grade = get('grade', 'sunset-gold');
+  state.layout = get('layout', 'neon-noir');
+  state.grade = get('grade', 'neon-noir');
   state.size = get('size', '1920x1080');
   state.title = get('title', 'Vice City');
   state.subtitle = get('subtitle', 'Neon Nights');
@@ -35,12 +35,19 @@ export async function runShot(shot, query, api) {
   const photoNames = (get('photos', CAST.map((c) => c.id).join(',')) || '')
     .split(',').map((s) => s.trim()).filter(Boolean);
   const byId = new Map(CAST.map((c) => [c.id, c]));
-  state.slots.forEach((s, i) => {
-    const cast = byId.get(photoNames[i % photoNames.length]) || CAST[i % CAST.length];
-    s.photoId = cast.id;
-    s.label = cast.role;
-    s.zoom = 1; s.ox = 0; s.oy = 0; s.flip = false;
-  });
+  const unique = [...new Set(photoNames)];
+  if (unique.length === 1) {
+    // One photo only: crop it into several different windows per panel.
+    const cast = byId.get(unique[0]) || CAST[0];
+    applySinglePhotoCrops(state.slots, cast.id, cast.role);
+  } else {
+    state.slots.forEach((s, i) => {
+      const cast = byId.get(photoNames[i % photoNames.length]) || CAST[i % CAST.length];
+      s.photoId = cast.id;
+      s.label = cast.role;
+      s.zoom = 1; s.ox = 0; s.oy = 0; s.flip = false;
+    });
+  }
   syncControls();
   pushHistory();
   if (shot === 'cover') {

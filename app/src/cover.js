@@ -18,6 +18,7 @@ export const LAYOUTS = {
   'hero-mosaic': { name: 'Hero Mosaic', cells: 7 },
   'diagonal-strips': { name: 'Diagonal Strips', cells: 7 },
   'six-grid': { name: 'Six Grid', cells: 6 },
+  'neon-noir': { name: 'Neon Noir', cells: 5 },
 };
 
 export const GRADES = {
@@ -26,6 +27,7 @@ export const GRADES = {
   'tropic-teal': { name: 'Tropic Teal', filter: 'saturate(1.15) contrast(1.06)', wash: 'rgba(0,180,160,0.15)' },
   'ultraviolet': { name: 'Ultraviolet', filter: 'hue-rotate(35deg) saturate(1.35) contrast(1.08)', wash: 'rgba(120,40,255,0.12)' },
   'retro-print': { name: 'Retro Print', filter: 'sepia(0.35) contrast(0.95) brightness(1.06) saturate(0.9)', wash: 'rgba(255,240,200,0.05)' },
+  'neon-noir': { name: 'Neon Noir', filter: 'saturate(1.5) contrast(1.18) brightness(0.82) hue-rotate(-12deg)', wash: 'rgba(90,20,170,0.22)' },
 };
 
 // The seven-person demo cast: file, role tag and face centre (fractions of
@@ -38,7 +40,34 @@ export const CAST = [
   { id: 'fixer', file: 'fixer.jpg', role: 'THE FIXER', faceX: 0.50, faceY: 0.28 },
   { id: 'smuggler', file: 'smuggler.jpg', role: 'THE SMUGGLER', faceX: 0.52, faceY: 0.30 },
   { id: 'lookout', file: 'lookout.jpg', role: 'THE LOOKOUT', faceX: 0.55, faceY: 0.30 },
+  { id: 'vista', file: 'landscape.jpg', role: 'THE CITY', faceX: 0.50, faceY: 0.45 },
+  { id: 'crew', file: 'group.jpg', role: 'THE CREW', faceX: 0.50, faceY: 0.40 },
 ];
+
+// Crop variants for one photo filling the whole collage: each slot gets a
+// different window of the same photo (centre, left, right, zoomed face,
+// wide), so a single photo still makes a full poster.
+export const SINGLE_PHOTO_CROPS = [
+  { zoom: 1.0, ox: 0, oy: 0 },
+  { zoom: 1.5, ox: -220, oy: 0 },
+  { zoom: 1.5, ox: 220, oy: 0 },
+  { zoom: 2.2, ox: 0, oy: -60 },
+  { zoom: 1.0, ox: 0, oy: 90 },
+  { zoom: 1.7, ox: -160, oy: 60 },
+  { zoom: 1.7, ox: 160, oy: -60 },
+];
+
+export function applySinglePhotoCrops(slots, photoId, label) {
+  slots.forEach((slot, i) => {
+    const c = SINGLE_PHOTO_CROPS[i % SINGLE_PHOTO_CROPS.length];
+    slot.photoId = photoId;
+    slot.label = label;
+    slot.zoom = c.zoom;
+    slot.ox = c.ox;
+    slot.oy = c.oy;
+    slot.flip = false;
+  });
+}
 
 export const BILLING_DEFAULT = 'A VICE CITY PICTURES PRODUCTION — STARRING THE BOSS, THE DRIVER, THE MECHANIC, THE HUSTLER, THE FIXER, THE SMUGGLER, THE LOOKOUT — MIAMI, 1987';
 
@@ -59,6 +88,18 @@ function layoutGeometry(layout, W, H) {
       panels: gridPanels(W, H, 0.05, 0.355, 0.62, 0.30, [1, 0, 2], [3, 5, 4]),
       titleTop: 0.43, bandTop: 0.92,
     };
+  }
+  if (layout === 'neon-noir') {
+    // Five tall vertical film strips; the right ~15% stays clear for the
+    // vertical title column. Strips are full height, no slant.
+    const strips = [];
+    const gap = 0.008 * W;
+    const avail = 0.84 * W - 0.01 * W;
+    const sw = (avail - 4 * gap) / 5;
+    for (let i = 0; i < 5; i++) {
+      strips.push({ x: 0.01 * W + i * (sw + gap), y: 0.05 * H, w: sw, h: 0.90 * H, rot: 0, slant: 0, slot: i });
+    }
+    return { panels: strips, titleTop: 0.05, bandTop: 0.95, verticalTitle: true };
   }
   if (layout === 'diagonal-strips') {
     return {
@@ -124,8 +165,8 @@ function drawPhoto(ctx, img, p, slot, face, grade) {
     ctx.closePath();
     ctx.clip();
     drawPhotoInto(ctx, img, p.x, p.y, p.w, p.h, slot, face, grade);
-    ctx.strokeStyle = 'rgba(0,0,0,0.65)';
-    ctx.lineWidth = Math.max(2, Math.round(p.w * 0.004));
+    ctx.strokeStyle = '#f5efe2';
+    ctx.lineWidth = Math.max(4, Math.round(p.w * 0.006));
     ctx.stroke();
   } else if (p.rot) {
     ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
@@ -133,15 +174,15 @@ function drawPhoto(ctx, img, p, slot, face, grade) {
     ctx.rect(-p.w / 2, -p.h / 2, p.w, p.h);
     ctx.clip();
     drawPhotoInto(ctx, img, -p.w / 2, -p.h / 2, p.w, p.h, slot, face, grade);
-    ctx.strokeStyle = 'rgba(0,0,0,0.65)';
-    ctx.lineWidth = Math.max(2, Math.round(p.w * 0.004));
+    ctx.strokeStyle = '#f5efe2';
+    ctx.lineWidth = Math.max(4, Math.round(p.w * 0.006));
     ctx.strokeRect(-p.w / 2, -p.h / 2, p.w, p.h);
   } else {
     ctx.rect(p.x, p.y, p.w, p.h);
     ctx.clip();
     drawPhotoInto(ctx, img, p.x, p.y, p.w, p.h, slot, face, grade);
-    ctx.strokeStyle = 'rgba(0,0,0,0.65)';
-    ctx.lineWidth = Math.max(2, Math.round(p.w * 0.004));
+    ctx.strokeStyle = '#f5efe2';
+    ctx.lineWidth = Math.max(4, Math.round(p.w * 0.006));
     ctx.strokeRect(p.x, p.y, p.w, p.h);
   }
   ctx.restore();
@@ -229,6 +270,112 @@ function drawArcText(ctx, text, cx, cy, r, maxFont) {
   ctx.restore();
 }
 
+// Original scene behind the title: a sun disc, a low skyline and palm
+// silhouettes, all drawn with canvas shapes (no artwork, no logos).
+function drawScene(ctx, W, H, titleTop) {
+  const bandTop = titleTop * H;
+  const bandBot = Math.min(0.68 * H, bandTop + 0.20 * H);
+  const cy = bandTop + (bandBot - bandTop) * 0.42;
+  const sunR = Math.min(0.055 * H, 0.05 * W);
+  // Sun disc: bright core fading to orange.
+  const sg = ctx.createRadialGradient(W / 2, cy, 0, W / 2, cy, sunR * 1.6);
+  sg.addColorStop(0, 'rgba(255,244,200,0.95)');
+  sg.addColorStop(0.55, 'rgba(255,180,80,0.85)');
+  sg.addColorStop(1, 'rgba(255,120,60,0)');
+  ctx.fillStyle = sg;
+  ctx.beginPath();
+  ctx.arc(W / 2, cy, sunR * 1.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ffdf8a';
+  ctx.beginPath();
+  ctx.arc(W / 2, cy, sunR, 0, Math.PI * 2);
+  ctx.fill();
+  // Low skyline along the bottom of the band.
+  ctx.fillStyle = 'rgba(20,10,20,0.85)';
+  let bx = 0;
+  let seed = 7;
+  while (bx < W) {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    const bw = W * (0.04 + (seed % 5) * 0.012);
+    const bh = (bandBot - bandTop) * (0.25 + (seed % 7) * 0.07);
+    ctx.fillRect(bx, bandBot - bh, bw, bh);
+    bx += bw + W * 0.008;
+  }
+  // Palm silhouettes flanking the title.
+  for (const side of [-1, 1]) {
+    const px = W / 2 + side * W * 0.44;
+    const py = bandBot;
+    const ph = (bandBot - bandTop) * 0.9;
+    ctx.strokeStyle = 'rgba(20,10,20,0.9)';
+    ctx.lineWidth = Math.max(3, W * 0.004);
+    ctx.beginPath();
+    ctx.moveTo(px, py);
+    ctx.quadraticCurveTo(px - side * W * 0.01, py - ph * 0.6, px - side * W * 0.02, py - ph);
+    ctx.stroke();
+    const tx = px - side * W * 0.02, ty = py - ph;
+    ctx.lineWidth = Math.max(2, W * 0.003);
+    for (let i = 0; i < 5; i++) {
+      const a = (-0.15 - i * 0.175) * Math.PI * side;
+      const len = ph * 0.45;
+      ctx.beginPath();
+      ctx.moveTo(tx, ty);
+      ctx.quadraticCurveTo(
+        tx + Math.cos(a) * len * 0.6, ty + Math.sin(a) * len * 0.5 - ph * 0.06,
+        tx + Math.cos(a) * len, ty + Math.sin(a) * len * 0.7);
+      ctx.stroke();
+    }
+  }
+}
+
+// Neon Noir vertical title: the caption stacked as upright letters down
+// the right column, hot pink neon with a glow.
+function drawVerticalTitle(ctx, W, H, state) {
+  const text = (state.title || 'Vice City').toUpperCase().replace(/\s+/g, '');
+  const chars = text.split('');
+  const colX = 0.925 * W;
+  const colW = 0.13 * W;
+  const top = 0.06 * H, bot = 0.94 * H;
+  const size = Math.max(20, Math.min(colW * 0.95, (bot - top) / (chars.length * 1.08)));
+  ctx.save();
+  ctx.font = `${Math.round(size)}px Anton, 'Arial Black', sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  const step = (bot - top) / chars.length;
+  chars.forEach((ch, i) => {
+    const cy = top + step * (i + 0.5);
+    ctx.shadowColor = '#ff2ec4';
+    ctx.shadowBlur = Math.round(size * 0.35);
+    ctx.strokeStyle = '#1a0512';
+    ctx.lineWidth = size * 0.08;
+    ctx.strokeText(ch, colX, cy);
+    const g = ctx.createLinearGradient(colX, cy - size / 2, colX, cy + size / 2);
+    g.addColorStop(0, '#ff7ae0');
+    g.addColorStop(0.5, '#ff2ec4');
+    g.addColorStop(1, '#c400a0');
+    ctx.fillStyle = g;
+    ctx.fillText(ch, colX, cy);
+  });
+  ctx.restore();
+}
+
+// Film-strip frame: black side borders with sprocket holes, for Neon Noir.
+function drawFilmFrames(ctx, panels) {
+  for (const p of panels) {
+    const bw = Math.max(6, p.w * 0.06);
+    ctx.fillStyle = '#0a0a12';
+    ctx.fillRect(p.x, p.y, bw, p.h);
+    ctx.fillRect(p.x + p.w - bw, p.y, bw, p.h);
+    ctx.fillStyle = 'rgba(240,230,255,0.85)';
+    const holeW = bw * 0.55, holeH = Math.max(4, p.h * 0.018);
+    const gap = holeH * 1.6;
+    for (let y = p.y + gap; y + holeH < p.y + p.h - gap; y += gap + holeH) {
+      ctx.fillRect(p.x + (bw - holeW) / 2, y, holeW, holeH);
+      ctx.fillRect(p.x + p.w - bw + (bw - holeW) / 2, y, holeW, holeH);
+    }
+  }
+}
+
 /** Draws the whole cover. photos: Map of photoId -> {img, faceX, faceY, label}. */
 export function drawCover(ctx, W, H, state, photos, opts = {}) {
   const grade = GRADES[state.grade] || GRADES['sunset-gold'];
@@ -246,20 +393,42 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
     drawPhoto(ctx, photo.img, p, slot, { x: photo.faceX, y: photo.faceY }, grade);
   }
 
-  // Grade wash + vignette over the photos, under the lettering.
+  // Cinematic grade, under the lettering: the grade's own wash, then a
+  // strong pink-to-orange sunset gradient (obvious at thumbnail size), a
+  // soft bloom glow, a deep vignette, and subtle film grain on every grade.
   ctx.fillStyle = grade.wash;
   ctx.fillRect(0, 0, W, H);
+  const sun = ctx.createLinearGradient(0, 0, 0, H);
+  sun.addColorStop(0, 'rgba(255,92,225,0.20)');
+  sun.addColorStop(0.45, 'rgba(255,140,60,0.12)');
+  sun.addColorStop(1, 'rgba(255,90,40,0.20)');
+  ctx.fillStyle = sun;
+  ctx.fillRect(0, 0, W, H);
+  // Soft bloom: a warm glow centred on the title zone.
+  ctx.save();
+  ctx.globalCompositeOperation = 'screen';
+  const bloom = ctx.createRadialGradient(W / 2, H * 0.52, 0, W / 2, H * 0.52, Math.max(W, H) * 0.42);
+  bloom.addColorStop(0, 'rgba(255,220,160,0.30)');
+  bloom.addColorStop(0.55, 'rgba(255,160,90,0.12)');
+  bloom.addColorStop(1, 'rgba(255,160,90,0)');
+  ctx.fillStyle = bloom;
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
   const vig = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.35, W / 2, H / 2, Math.max(W, H) * 0.75);
   vig.addColorStop(0, 'rgba(0,0,0,0)');
-  vig.addColorStop(1, 'rgba(0,0,0,0.22)');
+  vig.addColorStop(1, 'rgba(0,0,0,0.34)');
   ctx.fillStyle = vig;
   ctx.fillRect(0, 0, W, H);
-  if (state.grade === 'retro-print') {
-    ctx.fillStyle = 'rgba(255,255,255,0.04)';
-    for (let i = 0; i < 900; i++) {
-      const x = (i * 7919) % W, y = (i * 104729) % H;
-      ctx.fillRect(x, y, 1.5, 1.5);
-    }
+  // Film grain on every grade: deterministic dots, so exports are stable.
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  for (let i = 0; i < 1400; i++) {
+    const x = (i * 7919) % W, y = (i * 104729) % H;
+    ctx.fillRect(x, y, 1.5, 1.5);
+  }
+  ctx.fillStyle = 'rgba(0,0,0,0.05)';
+  for (let i = 0; i < 900; i++) {
+    const x = (i * 104729 + 401) % W, y = (i * 7919 + 977) % H;
+    ctx.fillRect(x, y, 1.5, 1.5);
   }
   if (state.grade === 'neon-night') {
     const g2 = ctx.createLinearGradient(0, 0, 0, H);
@@ -275,6 +444,9 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
     ctx.fillStyle = g3;
     ctx.fillRect(0, 0, W, H);
   }
+
+  // Neon Noir: film-strip frames over the panels, crisp above the grade.
+  if (state.layout === 'neon-noir') drawFilmFrames(ctx, geo.panels);
 
   // Top strip: five stars, quote, edition tag.
   ctx.fillStyle = '#000';
@@ -347,8 +519,15 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
     });
   }
 
-  // Title: solid gold Anton (Neon Night: cyan-white-magenta gradient),
-  // thick dark outline, stretched to fill the width.
+  // Neon Noir: a vertical title column instead of the horizontal band.
+  if (geo.verticalTitle) {
+    drawVerticalTitle(ctx, W, H, state);
+  } else {
+  // Original scene (sun, skyline, palms) behind the title band.
+  drawScene(ctx, W, H, geo.titleTop);
+
+  // Title: layered Anton — vertical gradient fill, thick dark outline,
+  // soft shadow — stretched to fill the width.
   const titleText = (state.title || 'Vice City').toUpperCase();
   const { size: titleSize, sx, width: titleWidth } = fitTitle(ctx, titleText, W, H);
   const capH = 0.72 * titleSize;
@@ -365,6 +544,9 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
   ctx.strokeStyle = '#140e04';
   ctx.lineWidth = titleSize * 0.09;
   ctx.strokeText(titleText, 0, 0);
+  ctx.shadowColor = 'rgba(0,0,0,0.55)';
+  ctx.shadowBlur = Math.round(titleSize * 0.06);
+  ctx.shadowOffsetY = Math.round(titleSize * 0.03);
   if (state.grade === 'neon-night') {
     const tg = ctx.createLinearGradient(0, -capH, 0, 0);
     tg.addColorStop(0, '#7ff7ff');
@@ -372,9 +554,17 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
     tg.addColorStop(1, '#ff5ce1');
     ctx.fillStyle = tg;
   } else {
-    ctx.fillStyle = GOLD;
+    const tg = ctx.createLinearGradient(0, -capH, 0, 0);
+    tg.addColorStop(0, '#ffe9a8');
+    tg.addColorStop(0.45, '#eec25a');
+    tg.addColorStop(0.8, '#ff7a3d');
+    tg.addColorStop(1, '#ff5ce1');
+    ctx.fillStyle = tg;
   }
   ctx.fillText(titleText, 0, 0);
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetY = 0;
   ctx.restore();
 
   // Script subtitle, pink neon.
@@ -412,6 +602,7 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
     ctx.textBaseline = 'middle';
     ctx.fillText(ribbonText, W / 2, ry + rh / 2 + 1);
   }
+  } // end of the horizontal-title branch (Neon Noir uses the vertical title)
 
   // Bottom band: billing, release line, barcode.
   const bandTop = geo.bandTop * H;
@@ -434,6 +625,18 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
   try { ctx.letterSpacing = '4px'; } catch (e) { /* older canvas: no letter spacing */ }
   ctx.fillText((state.release || 'COMING SOON').toUpperCase(), 0.02 * W, bandTop + (H - bandTop) / 2);
   try { ctx.letterSpacing = '0px'; } catch (e) { /* older canvas */ }
+  // Small rating box (original, fictional) just left of the barcode.
+  const rbW = 0.038 * W, rbH = (H - bandTop) * 0.62, rbX = W - 0.115 * W, rbY = bandTop + 0.008 * H;
+  ctx.strokeStyle = '#f2ede3';
+  ctx.lineWidth = Math.max(2, 0.0015 * W);
+  ctx.strokeRect(rbX, rbY, rbW, rbH);
+  ctx.fillStyle = '#f2ede3';
+  ctx.font = `800 ${Math.round(rbH * 0.52)}px Arial, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('M', rbX + rbW / 2, rbY + rbH * 0.42);
+  ctx.font = `700 ${Math.max(7, Math.round(rbH * 0.14))}px Arial, sans-serif`;
+  ctx.fillText('MATURE', rbX + rbW / 2, rbY + rbH * 0.86);
   drawBarcode(ctx, W - 0.065 * W, bandTop + 0.008 * H, 0.045 * W, (H - bandTop) * 0.62);
 
   // Gold seal (Neon Night: blue), just right of the title in the title zone —

@@ -2,7 +2,7 @@
 // State lives here; cover.js draws it. Photos: the seven-person demo cast
 // plus anything the user uploads. Every edit pushes an undo step; exports
 // render the same cover the preview shows, at full export size.
-import { renderCover, exportCoverPNG, COVER_SIZES, CAST, BILLING_DEFAULT, layoutPanels } from './cover.js';
+import { renderCover, exportCoverPNG, COVER_SIZES, CAST, BILLING_DEFAULT, layoutPanels, applySinglePhotoCrops } from './cover.js';
 import { runShot } from './shots.js';
 
 const canvas = document.getElementById('cover');
@@ -15,8 +15,8 @@ const photos = new Map(); // id -> {id, name, label, img, faceX, faceY}
 let photoSeq = 0;
 
 const state = {
-  layout: 'hero-mosaic',
-  grade: 'sunset-gold',
+  layout: 'neon-noir',
+  grade: 'neon-noir',
   size: '1920x1080',
   title: 'Vice City',
   subtitle: 'Neon Nights',
@@ -257,16 +257,48 @@ document.getElementById('resetCrop').addEventListener('click', () => {
 });
 document.getElementById('autofill').addEventListener('click', () => {
   const ids = [...photos.keys()];
-  state.slots.forEach((slot, i) => {
-    slot.photoId = ids[i % ids.length];
-    const photo = photos.get(slot.photoId);
-    slot.label = photo ? photo.label : '';
-    slot.zoom = 1; slot.ox = 0; slot.oy = 0; slot.flip = false;
-  });
+  if (ids.length === 1) {
+    // One photo only: crop it into several different windows (centre,
+    // left, right, zoomed face, wide) so the poster is full.
+    const photo = photos.get(ids[0]);
+    applySinglePhotoCrops(state.slots, ids[0], photo ? photo.label : '');
+  } else {
+    state.slots.forEach((slot, i) => {
+      slot.photoId = ids[i % ids.length];
+      const photo = photos.get(slot.photoId);
+      slot.label = photo ? photo.label : '';
+      slot.zoom = 1; slot.ox = 0; slot.oy = 0; slot.flip = false;
+    });
+  }
   syncTrayUsed();
   redraw();
   pushHistory();
 });
+document.getElementById('shuffle').addEventListener('click', () => {
+  const layouts = ['hero-mosaic', 'diagonal-strips', 'six-grid', 'neon-noir'];
+  const grades = ['sunset-gold', 'neon-night', 'tropic-teal', 'ultraviolet', 'retro-print', 'neon-noir'];
+  state.layout = layouts[Math.floor(Math.random() * layouts.length)];
+  state.grade = grades[Math.floor(Math.random() * grades.length)];
+  const ids = [...photos.keys()];
+  if (ids.length === 1) {
+    const photo = photos.get(ids[0]);
+    applySinglePhotoCrops(state.slots, ids[0], photo ? photo.label : '');
+  } else {
+    const shuffled = [...ids].sort(() => Math.random() - 0.5);
+    state.slots.forEach((slot, i) => {
+      slot.photoId = shuffled[i % shuffled.length];
+      const photo = photos.get(slot.photoId);
+      slot.label = photo ? photo.label : '';
+      slot.zoom = 1; slot.ox = 0; slot.oy = 0; slot.flip = false;
+    });
+  }
+  syncControls();
+  syncTrayUsed();
+  redraw();
+  pushHistory();
+  setStatus('Shuffled — new layout, grade and photo order.');
+});
+
 zoomEl.addEventListener('input', () => {
   const slot = state.slots[state.selected];
   slot.zoom = Number(zoomEl.value);
@@ -312,13 +344,15 @@ document.getElementById('export-all').addEventListener('click', async () => {
   }
 });
 
-document.getElementById('upload').addEventListener('change', async (e) => {
-  const files = [...e.target.files];
-  for (const file of files) {
+async function addFiles(files) {
+  const images = [...files].filter((f) => f.type && f.type.startsWith('image/'));
+  let lastId = null;
+  for (const file of images) {
     const img = await loadImage(URL.createObjectURL(file));
     const id = `upload-${photoSeq++}`;
     const name = file.name.replace(/\.[^.]+$/, '');
     photos.set(id, { id, name, label: name.toUpperCase().slice(0, 18), img, faceX: 0.5, faceY: 0.35 });
+    lastId = id;
     const b = document.createElement('button');
     b.type = 'button';
     b.className = 'thumb';
@@ -334,12 +368,37 @@ document.getElementById('upload').addEventListener('change', async (e) => {
     });
     trayEl.appendChild(b);
   }
-  if (files.length > 0) {
-    assignPhotoToSelected([...photos.keys()].pop());
+  if (images.length > 0) {
+    if (images.length === 1) {
+      // One photo only: crop it into several windows so the poster is full.
+      const photo = photos.get(lastId);
+      applySinglePhotoCrops(state.slots, lastId, photo ? photo.label : '');
+    } else {
+      assignPhotoToSelected(lastId);
+    }
     pushHistory();
-    setStatus(`${files.length} photo${files.length > 1 ? 's' : ''} added — they never leave this device.`);
+    setStatus(`${images.length} photo${images.length > 1 ? 's' : ''} added — they never leave this device.`);
   }
+  return images.length;
+}
+
+document.getElementById('upload').addEventListener('change', async (e) => {
+  await addFiles(e.target.files);
   e.target.value = '';
+});
+
+// Drag-and-drop a photo anywhere on the stage to add it.
+const stageEl = document.querySelector('.stage');
+['dragover', 'dragenter'].forEach((ev) => stageEl.addEventListener(ev, (e) => {
+  e.preventDefault();
+  stageEl.classList.add('dropping');
+}));
+['dragleave', 'drop'].forEach((ev) => stageEl.addEventListener(ev, (e) => {
+  e.preventDefault();
+  stageEl.classList.remove('dropping');
+}));
+stageEl.addEventListener('drop', async (e) => {
+  await addFiles(e.dataTransfer.files);
 });
 
 // ---- Canvas pointer: select, drag to pan, wheel to zoom, drag a number to swap ----
