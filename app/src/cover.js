@@ -15,7 +15,7 @@ export const COVER_SIZES = {
 };
 
 export const LAYOUTS = {
-  'hero-mosaic': { name: 'Hero Mosaic', cells: 5 },
+  'hero-mosaic': { name: 'Hero Mosaic', cells: 7 },
   'diagonal-strips': { name: 'Diagonal Strips', cells: 7 },
   'six-grid': { name: 'Six Grid', cells: 6 },
 };
@@ -79,11 +79,10 @@ const CREAM = '#f2ede3';
 // between the rows (hero, six-grid) or across the strips' middles
 // (diagonal), always clear of the panels' face zones.
 function layoutGeometry(layout, W, H) {
-  // The canvas is panels + a bottom title strip, nothing else. Panels fill
-  // 0 to 0.82H edge to edge; the strip is the bottom 18% (0.82H to 1.0H),
-  // where the title and credit live, never over a face.
-  const PANEL_BOT = 0.82;
-  const TITLE_TOP = 0.835;
+  // Golden Mile (#1) formula: panels fill 0.05H to 0.94H between a top
+  // strip and a bottom band; the title sits in the MIDDLE over the panels
+  // (its band is clear of every face's eyes), never in a separate strip.
+  const topRowY = 0.05, stripTop = 0.05;
   if (layout === 'six-grid') {
     // Portrait canvases (H > W) use 2 columns x 3 rows so no face is cut
     // by the title or an edge; landscape stays 3x2.
@@ -91,49 +90,56 @@ function layoutGeometry(layout, W, H) {
       const panels = [];
       for (let r = 0; r < 3; r++) {
         for (let c = 0; c < 2; c++) {
-          panels.push({ x: c * 0.5 * W, y: r * (PANEL_BOT / 3) * H, w: 0.5 * W, h: (PANEL_BOT / 3) * H, rot: 0, slant: 0, slot: r * 2 + c });
+          panels.push({ x: c * 0.5 * W, y: (0.05 + r * (0.89 / 3)) * H, w: 0.5 * W, h: (0.89 / 3) * H, rot: 0, slant: 0, slot: r * 2 + c });
         }
       }
-      return { panels, titleTop: TITLE_TOP, bandTop: PANEL_BOT };
+      return { panels, titleTop: 0.485, bandTop: 0.94 };
     }
     return {
-      panels: gridPanels(W, H, 0, PANEL_BOT / 2, PANEL_BOT / 2, PANEL_BOT / 2, [1, 0, 2], [3, 5, 4]),
-      titleTop: TITLE_TOP, bandTop: PANEL_BOT,
+      panels: gridPanels(W, H, 0.05, 0.355, 0.62, 0.30, [1, 0, 2], [3, 5, 4]),
+      titleTop: 0.43, bandTop: 0.92,
     };
   }
   if (layout === 'diagonal-strips') {
     return {
-      panels: stripPanels(W, H, 0, PANEL_BOT),
-      titleTop: TITLE_TOP, bandTop: PANEL_BOT,
+      panels: stripPanels(W, H, stripTop, 0.94),
+      titleTop: 0.485, bandTop: 0.94,
     };
   }
-  // hero-mosaic (default): one large panel on the left (60% width, the
-  // Boss) + 4 small panels stacked on the right.
-  const panels = [{ x: 0, y: 0, w: 0.60 * W, h: PANEL_BOT * H, rot: 0, slant: 0, slot: 0 }];
-  const smallH = (PANEL_BOT / 4) * H;
-  for (let i = 0; i < 4; i++) {
-    panels.push({ x: 0.60 * W, y: i * smallH, w: 0.40 * W, h: smallH, rot: 0, slant: 0, slot: i + 1 });
-  }
-  return { panels, titleTop: TITLE_TOP, bandTop: PANEL_BOT };
+  // hero-mosaic (default, like #1): Boss hero centre-top (1.4x wide),
+  // six around — a large close-up hero with the title across the middle.
+  const unit = 0.95 / 4.4;
+  const widths = [unit, unit, unit * 1.4, unit];
+  const top = [];
+  let x = 0.01;
+  const slotOrder = [1, 2, 0, 3]; // Driver, Mechanic, Boss, Hustler
+  widths.forEach((w, i) => {
+    top.push({ x: x * W, y: topRowY * H, w: w * W, h: 0.42 * H, rot: i === 2 ? -0.02 : 0, slant: 0, slot: slotOrder[i] });
+    x += w + 0.01;
+  });
+  const bottom = [
+    { x: 0.01 * W, y: 0.67 * H, w: 0.32 * W, h: 0.28 * H, rot: 0, slant: 0, slot: 4 },
+    { x: 0.34 * W, y: 0.67 * H, w: 0.32 * W, h: 0.28 * H, rot: 0, slant: 0, slot: 5 },
+    { x: 0.67 * W, y: 0.67 * H, w: 0.32 * W, h: 0.28 * H, rot: 0, slant: 0, slot: 6 },
+  ];
+  return { panels: [...top, ...bottom], titleTop: 0.485, bandTop: 0.95 };
 }
 
 // Three-by-two grid; topSlots/bottomSlots name the slot index per cell.
-// Edge to edge: panels start at x=0 and end at x=W.
 function gridPanels(W, H, topY, topH, botY, botH, topSlots, botSlots) {
   const out = [];
-  const xs = [0, 0.335, 0.67], w = 0.33;
+  const xs = [0.01, 0.34, 0.67], w = 0.32;
   topSlots.forEach((slot, i) => out.push({ x: xs[i] * W, y: topY * H, w: w * W, h: topH * H, rot: 0, slant: 0, slot }));
   botSlots.forEach((slot, i) => out.push({ x: xs[i] * W, y: botY * H, w: w * W, h: botH * H, rot: 0, slant: 0, slot }));
   return out;
 }
 
 // Seven slanted full-height strips; the Boss strip (index 3) is 1.5 wide.
-// Edge to edge: strips start at x=0 and end at x=W.
 function stripPanels(W, H, topY, botY) {
-  const unit = 1.0 / 7.5;
+  const unit = 0.98 / 7.5;
   const widths = [1, 1, 1, 1.5, 1, 1, 1];
   const out = [];
-  let x = 0;
+  let x = 0.01;
   widths.forEach((u, i) => {
     out.push({ x: x * W, y: topY * H, w: u * unit * W, h: (botY - topY) * H, rot: 0, slant: 0.03 * W, slot: i });
     x += u * unit;
@@ -200,10 +206,9 @@ function drawPhotoInto(ctx, img, dx, dy, dw, dh, slot, face, grade) {
   ctx.filter = 'none';
 }
 
-/** Fits the title: Anton at 0.10H, stretched up to 1.5x to fill 0.88W.
-    The title lives in the bottom strip (18% of H), so it must be compact. */
+/** Fits the title: Anton at 0.15H, stretched up to 1.5x to fill 0.88W. */
 function fitTitle(ctx, text, W, H) {
-  let size = Math.round(0.10 * H);
+  let size = Math.round(0.15 * H);
   ctx.font = `${size}px Anton, 'Arial Black', sans-serif`;
   const measured = ctx.measureText(text.toUpperCase()).width || 1;
   const target = 0.88 * W;
@@ -396,6 +401,25 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
     ctx.fillRect(0, 0, W, H);
   }
 
+  // Top strip: five stars, quote, edition tag (like #1 Golden Mile).
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, W, 0.05 * H);
+  const stripY = 0.025 * H;
+  ctx.fillStyle = GOLD;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const quoteText = `${'★'.repeat(state.heat || 5)}  ${(state.quote || '').toUpperCase()} — ${(state.quoteSource || '').toUpperCase()}`;
+  ctx.font = `700 ${Math.round(0.016 * H)}px Arial, sans-serif`;
+  ctx.fillText(quoteText, W / 2, stripY);
+  ctx.font = `700 ${Math.round(0.013 * H)}px Arial, sans-serif`;
+  const ed = (state.edition || 'VOL. 1').toUpperCase();
+  const edW = ctx.measureText(ed).width + 0.016 * W;
+  ctx.strokeStyle = GOLD;
+  ctx.lineWidth = Math.max(1, 0.0015 * W);
+  ctx.strokeRect(W - 0.015 * W - edW, stripY - 0.016 * H, edW, 0.032 * H);
+  ctx.fillStyle = GOLD;
+  ctx.fillText(ed, W - 0.015 * W - edW / 2, stripY);
+
   // Name tags only when the panels hold DIFFERENT photos; when one photo
   // fills several panels, the crops speak for themselves and labels would
   // just repeat the same word.
@@ -415,19 +439,14 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
       const tw = ctx.measureText(label).width;
       const padX = fs * 0.7, padY = fs * 0.45;
       const tx = p.x + 0.008 * W, ty = p.y + p.h - 0.008 * H - (fs + padY * 2) / 2;
-      ctx.fillStyle = GOLD;
-      ctx.beginPath();
+      // #1 style: a black tag with white text and a gold left edge.
       const bx = tx, by = ty - (fs + padY * 2) / 2, bw = tw + padX * 2, bh = fs + padY * 2;
-      const r = Math.min(4, bh / 2);
-      ctx.moveTo(bx + r, by);
-      ctx.arcTo(bx + bw, by, bx + bw, by + bh, r);
-      ctx.arcTo(bx + bw, by + bh, bx, by + bh, r);
-      ctx.arcTo(bx, by + bh, bx, by, r);
-      ctx.arcTo(bx, by, bx + bw, by, r);
-      ctx.closePath();
-      ctx.fill();
-      ctx.fillStyle = '#14100a';
-      ctx.fillText(label, tx + padX, ty);
+      ctx.fillStyle = 'rgba(0,0,0,0.92)';
+      ctx.fillRect(bx, by, bw, bh);
+      ctx.fillStyle = GOLD;
+      ctx.fillRect(bx, by, Math.max(3, fs * 0.22), bh);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(label, tx + padX + Math.max(3, fs * 0.22), ty);
     }
   }
   if (opts.editor) {
@@ -451,13 +470,8 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
     });
   }
 
-  // Bottom title strip (the bottom 18%): a dark gradient, full width,
-  // BELOW the panels — the title and credit live here, never over a face.
-  const dg = ctx.createLinearGradient(0, geo.bandTop * H, 0, H);
-  dg.addColorStop(0, 'rgba(26,10,20,0.96)');
-  dg.addColorStop(1, 'rgba(0,0,0,1)');
-  ctx.fillStyle = dg;
-  ctx.fillRect(0, geo.bandTop * H, W, H - geo.bandTop * H);
+  // Original scene (sun, skyline, palms) behind the title band.
+  drawScene(ctx, W, H, geo.titleTop);
 
   // Title: layered Anton — vertical gradient fill, thick dark outline,
   // soft shadow — stretched to fill the width.
@@ -500,8 +514,8 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
   ctx.shadowOffsetY = 0;
   ctx.restore();
 
-  // Script subtitle, pink neon, tucked under the title inside the strip.
-  const subY = titleTop + capH + 0.015 * H;
+  // Script subtitle, pink neon.
+  const subY = titleTop + capH + 0.03 * H;
   ctx.save();
   ctx.font = `${Math.round(0.038 * H)}px Pacifico, cursive`;
   ctx.textAlign = 'center';
@@ -512,20 +526,92 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
   ctx.fillText(state.subtitle || '', W / 2, subY);
   ctx.restore();
 
-  // Credit line: one small centred line inside the bottom strip, under
-  // the title and subtitle, on the strip's dark background — never on top
-  // of photos.
-  ctx.fillStyle = 'rgba(216,198,144,0.9)';
+  // Tagline ribbon (Neon Night: cyan; otherwise orange).
+  const ribbonText = (state.ribbon || '').toUpperCase();
+  if (ribbonText) {
+    const rfs = Math.max(11, Math.round(0.013 * H));
+    ctx.font = `800 ${rfs}px Arial, sans-serif`;
+    const rw = ctx.measureText(ribbonText).width + rfs * 2.4;
+    const rh = 0.024 * H;
+    const ry = subY + 0.022 * H;
+    const grad = ctx.createLinearGradient(W / 2 - rw / 2, 0, W / 2 + rw / 2, 0);
+    if (state.grade === 'neon-night') {
+      grad.addColorStop(0, '#19c8e8');
+      grad.addColorStop(1, '#7ff7ff');
+    } else {
+      grad.addColorStop(0, '#ff8a3d');
+      grad.addColorStop(1, '#ff5e3d');
+    }
+    ctx.fillStyle = grad;
+    ctx.fillRect(W / 2 - rw / 2, ry, rw, rh);
+    ctx.fillStyle = '#1a1206';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(ribbonText, W / 2, ry + rh / 2 + 1);
+  }
+
+  // Bottom band: billing, release line, barcode (like #1 Golden Mile).
+  const bandTop = geo.bandTop * H;
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, bandTop, W, H - bandTop);
+  ctx.fillStyle = '#d8c690';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  const bfs = Math.max(9, Math.round(0.009 * W));
+  const bfs = Math.max(10, Math.round(0.011 * W));
   ctx.font = `${bfs}px Arial, sans-serif`;
-  const credit = (state.billing || BILLING_DEFAULT).toUpperCase();
-  const creditW = ctx.measureText(credit).width;
-  if (creditW > 0.92 * W) {
-    ctx.font = `${Math.max(8, Math.round(bfs * (0.92 * W / creditW)))}px Arial, sans-serif`;
+  const billingLines = wrapLines(ctx, state.billing || BILLING_DEFAULT, 0.62 * W);
+  const lineH = bfs * 1.5;
+  const billingTop = bandTop + (H - bandTop) / 2 - ((billingLines.length - 1) * lineH) / 2;
+  billingLines.forEach((line, i) => ctx.fillText(line, W / 2, billingTop + i * lineH));
+  ctx.textAlign = 'left';
+  ctx.font = `700 ${Math.round(0.015 * Math.min(W, H))}px Arial, sans-serif`;
+  ctx.fillStyle = GOLD;
+  try { ctx.letterSpacing = '4px'; } catch (e) { /* older canvas: no letter spacing */ }
+  ctx.fillText((state.release || 'COMING SOON').toUpperCase(), 0.02 * W, bandTop + (H - bandTop) / 2);
+  try { ctx.letterSpacing = '0px'; } catch (e) { /* older canvas */ }
+  // Small rating box (original, fictional) just left of the barcode.
+  const rbW = 0.038 * W, rbH = (H - bandTop) * 0.62, rbX = W - 0.115 * W, rbY = bandTop + 0.008 * H;
+  ctx.strokeStyle = '#f2ede3';
+  ctx.lineWidth = Math.max(2, 0.0015 * W);
+  ctx.strokeRect(rbX, rbY, rbW, rbH);
+  ctx.fillStyle = '#f2ede3';
+  ctx.font = `800 ${Math.round(rbH * 0.52)}px Arial, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('M', rbX + rbW / 2, rbY + rbH * 0.42);
+  ctx.font = `700 ${Math.max(7, Math.round(rbH * 0.14))}px Arial, sans-serif`;
+  ctx.fillText('MATURE', rbX + rbW / 2, rbY + rbH * 0.86);
+  drawBarcode(ctx, W - 0.065 * W, bandTop + 0.008 * H, 0.045 * W, (H - bandTop) * 0.62);
+
+  // Gold seal (Neon Night: blue), just right of the title in the title zone —
+  // clear of every face.
+  if (state.showSeal !== false) {
+    const sr = Math.max(26, 0.034 * W);
+    const scx = Math.min(0.96 * W, titleRight + sr + 0.008 * W), scy = titleTop + capH * 0.5;
+    const neon = state.grade === 'neon-night';
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(scx, scy, sr, 0, Math.PI * 2);
+    ctx.fillStyle = neon ? '#1e6fd9' : GOLD;
+    ctx.fill();
+    ctx.lineWidth = Math.max(2, sr * 0.06);
+    ctx.strokeStyle = neon ? '#7ff7ff' : GOLD_DARK;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(scx, scy, sr * 0.82, 0, Math.PI * 2);
+    ctx.strokeStyle = neon ? 'rgba(127,247,255,0.8)' : 'rgba(138,106,31,0.8)';
+    ctx.lineWidth = Math.max(1, sr * 0.03);
+    ctx.stroke();
+    ctx.fillStyle = neon ? GOLD : GOLD_DARK;
+    drawStar(ctx, scx, scy - sr * 0.42, sr * 0.16);
+    ctx.fillStyle = neon ? '#ffffff' : '#14100a';
+    ctx.font = `800 ${Math.round(sr * 0.26)}px Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText((state.seal || 'BEST CREW').toUpperCase(), scx, scy + sr * 0.18);
+    drawArcText(ctx, (state.sealRing || '').toUpperCase(), scx, scy, sr * 0.68, sr * 0.16);
+    ctx.restore();
   }
-  ctx.fillText(credit, W / 2, 0.965 * H);
 
   ctx.restore();
 }
