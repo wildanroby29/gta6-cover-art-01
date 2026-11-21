@@ -15,7 +15,7 @@ export const COVER_SIZES = {
 };
 
 export const LAYOUTS = {
-  'hero-mosaic': { name: 'Hero Mosaic', cells: 7 },
+  'hero-mosaic': { name: 'Hero Mosaic', cells: 5 },
   'diagonal-strips': { name: 'Diagonal Strips', cells: 7 },
   'six-grid': { name: 'Six Grid', cells: 6 },
 };
@@ -79,54 +79,61 @@ const CREAM = '#f2ede3';
 // between the rows (hero, six-grid) or across the strips' middles
 // (diagonal), always clear of the panels' face zones.
 function layoutGeometry(layout, W, H) {
-  // Panels fill the whole canvas (no black bands above or below); the
-  // title sits at the bottom over a dark gradient strip.
-  const topRowY = 0, stripTop = 0;
+  // The canvas is panels + a bottom title strip, nothing else. Panels fill
+  // 0 to 0.82H edge to edge; the strip is the bottom 18% (0.82H to 1.0H),
+  // where the title and credit live, never over a face.
+  const PANEL_BOT = 0.82;
+  const TITLE_TOP = 0.835;
   if (layout === 'six-grid') {
+    // Portrait canvases (H > W) use 2 columns x 3 rows so no face is cut
+    // by the title or an edge; landscape stays 3x2.
+    if (H > W) {
+      const panels = [];
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 2; c++) {
+          panels.push({ x: c * 0.5 * W, y: r * (PANEL_BOT / 3) * H, w: 0.5 * W, h: (PANEL_BOT / 3) * H, rot: 0, slant: 0, slot: r * 2 + c });
+        }
+      }
+      return { panels, titleTop: TITLE_TOP, bandTop: PANEL_BOT };
+    }
     return {
-      panels: gridPanels(W, H, 0, 0.50, 0.50, 0.50, [1, 0, 2], [3, 5, 4]),
-      titleTop: 0.78, bandTop: 1.0,
+      panels: gridPanels(W, H, 0, PANEL_BOT / 2, PANEL_BOT / 2, PANEL_BOT / 2, [1, 0, 2], [3, 5, 4]),
+      titleTop: TITLE_TOP, bandTop: PANEL_BOT,
     };
   }
   if (layout === 'diagonal-strips') {
     return {
-      panels: stripPanels(W, H, stripTop, 1.0),
-      titleTop: 0.78, bandTop: 1.0,
+      panels: stripPanels(W, H, 0, PANEL_BOT),
+      titleTop: TITLE_TOP, bandTop: PANEL_BOT,
     };
   }
-  // hero-mosaic (default): Boss hero centre-top, six around.
-  const unit = 0.95 / 4.4;
-  const widths = [unit, unit, unit * 1.4, unit];
-  const top = [];
-  let x = 0.01;
-  const slotOrder = [1, 2, 0, 3]; // Driver, Mechanic, Boss, Hustler
-  widths.forEach((w, i) => {
-    top.push({ x: x * W, y: topRowY * H, w: w * W, h: 0.50 * H, rot: i === 2 ? -0.02 : 0, slant: 0, slot: slotOrder[i] });
-    x += w + 0.01;
-  });
-  const bottom = [
-    { x: 0.01 * W, y: 0.50 * H, w: 0.32 * W, h: 0.50 * H, rot: 0, slant: 0, slot: 4 },
-    { x: 0.34 * W, y: 0.50 * H, w: 0.32 * W, h: 0.50 * H, rot: 0, slant: 0, slot: 5 },
-    { x: 0.67 * W, y: 0.50 * H, w: 0.32 * W, h: 0.50 * H, rot: 0, slant: 0, slot: 6 },
-  ];
-  return { panels: [...top, ...bottom], titleTop: 0.78, bandTop: 1.0 };
+  // hero-mosaic (default): one large panel on the left (60% width, the
+  // Boss) + 4 small panels stacked on the right.
+  const panels = [{ x: 0, y: 0, w: 0.60 * W, h: PANEL_BOT * H, rot: 0, slant: 0, slot: 0 }];
+  const smallH = (PANEL_BOT / 4) * H;
+  for (let i = 0; i < 4; i++) {
+    panels.push({ x: 0.60 * W, y: i * smallH, w: 0.40 * W, h: smallH, rot: 0, slant: 0, slot: i + 1 });
+  }
+  return { panels, titleTop: TITLE_TOP, bandTop: PANEL_BOT };
 }
 
 // Three-by-two grid; topSlots/bottomSlots name the slot index per cell.
+// Edge to edge: panels start at x=0 and end at x=W.
 function gridPanels(W, H, topY, topH, botY, botH, topSlots, botSlots) {
   const out = [];
-  const xs = [0.01, 0.34, 0.67], w = 0.32;
+  const xs = [0, 0.335, 0.67], w = 0.33;
   topSlots.forEach((slot, i) => out.push({ x: xs[i] * W, y: topY * H, w: w * W, h: topH * H, rot: 0, slant: 0, slot }));
   botSlots.forEach((slot, i) => out.push({ x: xs[i] * W, y: botY * H, w: w * W, h: botH * H, rot: 0, slant: 0, slot }));
   return out;
 }
 
 // Seven slanted full-height strips; the Boss strip (index 3) is 1.5 wide.
+// Edge to edge: strips start at x=0 and end at x=W.
 function stripPanels(W, H, topY, botY) {
-  const unit = 0.98 / 7.5;
+  const unit = 1.0 / 7.5;
   const widths = [1, 1, 1, 1.5, 1, 1, 1];
   const out = [];
-  let x = 0.01;
+  let x = 0;
   widths.forEach((u, i) => {
     out.push({ x: x * W, y: topY * H, w: u * unit * W, h: (botY - topY) * H, rot: 0, slant: 0.03 * W, slot: i });
     x += u * unit;
@@ -193,9 +200,10 @@ function drawPhotoInto(ctx, img, dx, dy, dw, dh, slot, face, grade) {
   ctx.filter = 'none';
 }
 
-/** Fits the title: Anton at 0.15H, stretched up to 1.5x to fill 0.88W. */
+/** Fits the title: Anton at 0.10H, stretched up to 1.5x to fill 0.88W.
+    The title lives in the bottom strip (18% of H), so it must be compact. */
 function fitTitle(ctx, text, W, H) {
-  let size = Math.round(0.15 * H);
+  let size = Math.round(0.10 * H);
   ctx.font = `${size}px Anton, 'Arial Black', sans-serif`;
   const measured = ctx.measureText(text.toUpperCase()).width || 1;
   const target = 0.88 * W;
@@ -443,13 +451,13 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
     });
   }
 
-  // Dark gradient strip at the bottom, behind the horizontal title.
-  const dg = ctx.createLinearGradient(0, 0.72 * H, 0, H);
-  dg.addColorStop(0, 'rgba(0,0,0,0)');
-  dg.addColorStop(0.45, 'rgba(0,0,0,0.45)');
-  dg.addColorStop(1, 'rgba(0,0,0,0.70)');
+  // Bottom title strip (the bottom 18%): a dark gradient, full width,
+  // BELOW the panels — the title and credit live here, never over a face.
+  const dg = ctx.createLinearGradient(0, geo.bandTop * H, 0, H);
+  dg.addColorStop(0, 'rgba(26,10,20,0.96)');
+  dg.addColorStop(1, 'rgba(0,0,0,1)');
   ctx.fillStyle = dg;
-  ctx.fillRect(0, 0.72 * H, W, 0.28 * H);
+  ctx.fillRect(0, geo.bandTop * H, W, H - geo.bandTop * H);
 
   // Title: layered Anton — vertical gradient fill, thick dark outline,
   // soft shadow — stretched to fill the width.
@@ -492,8 +500,8 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
   ctx.shadowOffsetY = 0;
   ctx.restore();
 
-  // Script subtitle, pink neon.
-  const subY = titleTop + capH + 0.03 * H;
+  // Script subtitle, pink neon, tucked under the title inside the strip.
+  const subY = titleTop + capH + 0.015 * H;
   ctx.save();
   ctx.font = `${Math.round(0.038 * H)}px Pacifico, cursive`;
   ctx.textAlign = 'center';
@@ -504,9 +512,9 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
   ctx.fillText(state.subtitle || '', W / 2, subY);
   ctx.restore();
 
-  // Credit line: one small centred line at the very top, clear of the
-  // title, subtitle and panel labels below it (the bottom row's labels sit
-  // at the bottom edge, so the credit cannot live there).
+  // Credit line: one small centred line inside the bottom strip, under
+  // the title and subtitle, on the strip's dark background — never on top
+  // of photos.
   ctx.fillStyle = 'rgba(216,198,144,0.9)';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
@@ -517,37 +525,8 @@ export function drawCover(ctx, W, H, state, photos, opts = {}) {
   if (creditW > 0.92 * W) {
     ctx.font = `${Math.max(8, Math.round(bfs * (0.92 * W / creditW)))}px Arial, sans-serif`;
   }
-  ctx.fillText(credit, W / 2, 0.022 * H);
+  ctx.fillText(credit, W / 2, 0.965 * H);
 
-  // Gold seal (Neon Night: blue), just right of the title in the title zone —
-  // clear of every face.
-  if (state.showSeal !== false) {
-    const sr = Math.max(26, 0.034 * W);
-    const scx = Math.min(0.96 * W, titleRight + sr + 0.008 * W), scy = titleTop + capH * 0.5;
-    const neon = state.grade === 'neon-night';
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(scx, scy, sr, 0, Math.PI * 2);
-    ctx.fillStyle = neon ? '#1e6fd9' : GOLD;
-    ctx.fill();
-    ctx.lineWidth = Math.max(2, sr * 0.06);
-    ctx.strokeStyle = neon ? '#7ff7ff' : GOLD_DARK;
-    ctx.stroke();
-    ctx.beginPath();
-    ctx.arc(scx, scy, sr * 0.82, 0, Math.PI * 2);
-    ctx.strokeStyle = neon ? 'rgba(127,247,255,0.8)' : 'rgba(138,106,31,0.8)';
-    ctx.lineWidth = Math.max(1, sr * 0.03);
-    ctx.stroke();
-    ctx.fillStyle = neon ? GOLD : GOLD_DARK;
-    drawStar(ctx, scx, scy - sr * 0.42, sr * 0.16);
-    ctx.fillStyle = neon ? '#ffffff' : '#14100a';
-    ctx.font = `800 ${Math.round(sr * 0.26)}px Arial, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText((state.seal || 'BEST CREW').toUpperCase(), scx, scy + sr * 0.18);
-    drawArcText(ctx, (state.sealRing || '').toUpperCase(), scx, scy, sr * 0.68, sr * 0.16);
-    ctx.restore();
-  }
   ctx.restore();
 }
 

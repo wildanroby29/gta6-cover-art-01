@@ -15,7 +15,7 @@ export async function runShot(shot, query, api) {
   const { state, loadSamples, redraw, pushHistory, syncControls } = api;
   await loadSamples();
   const get = (k, d) => query.get(k) ?? d;
-  state.layout = get('layout', 'six-grid');
+  state.layout = get('layout', 'hero-mosaic');
   state.grade = get('grade', 'sunset-gold');
   state.size = get('size', '1920x1080');
   state.title = get('title', 'Vice City');

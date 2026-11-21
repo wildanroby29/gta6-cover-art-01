@@ -15,7 +15,7 @@ const photos = new Map(); // id -> {id, name, label, img, faceX, faceY}
 let photoSeq = 0;
 
 const state = {
-  layout: 'six-grid',
+  layout: 'hero-mosaic',
   grade: 'sunset-gold',
   size: '1920x1080',
   title: 'Vice City',
